@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 
 #include "vmlinux.h"
+#include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
+#include "core_fixes.bpf.h"
 #include "runqslower.h"
 
 #define TASK_RUNNING 0
@@ -9,11 +12,12 @@
 
 const volatile __u64 min_us = 0;
 const volatile pid_t target_pid = 0;
+const volatile pid_t target_tgid = 0;
 
 struct {
-	__uint(type, BPF_MAP_TYPE_TASK_STORAGE);
-	__uint(map_flags, BPF_F_NO_PREALLOC);
-	__type(key, int);
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 10240);
+	__type(key, u32);
 	__type(value, u64);
 } start SEC(".maps");
 
@@ -25,66 +29,40 @@ struct {
 
 /* record enqueue timestamp */
 __always_inline
-static int trace_enqueue(struct task_struct *t)
+static int trace_enqueue(struct task_struct *p)
 {
-	u32 pid = t->pid;
-	u64 *ptr;
+	u32 pid = BPF_CORE_READ(p, pid);
+	u32 tgid = BPF_CORE_READ(p, tgid);
+	u64 ts;
 
-	if (!pid || (target_pid != 0 && target_pid != pid))
+	if (!pid)
+		return 0;
+	if (target_pid && target_pid != pid)
+		return 0;
+	if (target_tgid && target_tgid != tgid)
 		return 0;
 
-	ptr = bpf_task_storage_get(&start, t, 0, BPF_LOCAL_STORAGE_GET_F_CREATE);
-	if (!ptr)
-		return 0;
-
-	*ptr = bpf_ktime_get_ns();
+	ts = bpf_ktime_get_ns();
+	bpf_map_update_elem(&start, &pid, &ts, 0);
 	return 0;
 }
 
-SEC("tp_btf/sched_wakeup")
-int handle__sched_wakeup(u64 *ctx)
+__always_inline
+static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct *next)
 {
-	/* TP_PROTO(struct task_struct *p) */
-	struct task_struct *p = (void *)ctx[0];
-
-	return trace_enqueue(p);
-}
-
-SEC("tp_btf/sched_wakeup_new")
-int handle__sched_wakeup_new(u64 *ctx)
-{
-	/* TP_PROTO(struct task_struct *p) */
-	struct task_struct *p = (void *)ctx[0];
-
-	return trace_enqueue(p);
-}
-
-SEC("tp_btf/sched_switch")
-int handle__sched_switch(u64 *ctx)
-{
-	/* TP_PROTO(bool preempt, struct task_struct *prev,
-	 *	    struct task_struct *next)
-	 */
-	struct task_struct *prev = (struct task_struct *)ctx[1];
-	struct task_struct *next = (struct task_struct *)ctx[2];
 	struct runq_event event = {};
 
 	u64 *tsp, delta_us;
-	long state;
 	u32 pid;
 
 	/* treat like an enqueue event and store timestamp */
-	if (prev->__state == TASK_RUNNING)
+	if (get_task_state(prev) == TASK_RUNNING)
 		trace_enqueue(prev);
 
-	pid = next->pid;
-
-	/* For pid mismatch, save a bpf_task_storage_get */
-	if (!pid || (target_pid != 0 && target_pid != pid))
-		return 0;
+	pid = BPF_CORE_READ(next, pid);
 
 	/* fetch timestamp and calculate delta */
-	tsp = bpf_task_storage_get(&start, next, 0, 0);
+	tsp = bpf_map_lookup_elem(&start, &pid);
 	if (!tsp)
 		return 0;
 
@@ -94,15 +72,58 @@ int handle__sched_switch(u64 *ctx)
 		return 0;
 
 	event.pid = pid;
+	event.prev_pid = BPF_CORE_READ(prev, pid);
 	event.delta_us = delta_us;
-	bpf_get_current_comm(&event.task, sizeof(event.task));
+	bpf_probe_read_kernel_str(&event.task, sizeof(event.task), next->comm);
+	bpf_probe_read_kernel_str(&event.prev_task, sizeof(event.prev_task), prev->comm);
 
 	/* output */
 	bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU,
 			      &event, sizeof(event));
 
-	bpf_task_storage_delete(&start, next);
+	bpf_map_delete_elem(&start, &pid);
 	return 0;
+}
+
+SEC("tp_btf/sched_wakeup")
+int BPF_PROG(sched_wakeup, struct task_struct *p)
+{
+	/* TP_PROTO(struct task_struct *p) */
+	return trace_enqueue(p);
+}
+
+SEC("tp_btf/sched_wakeup_new")
+int BPF_PROG(sched_wakeup_new, struct task_struct *p)
+{
+	/* TP_PROTO(struct task_struct *p) */
+	return trace_enqueue(p);
+}
+
+SEC("tp_btf/sched_switch")
+int BPF_PROG(sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next)
+{
+	/* TP_PROTO(bool preempt, struct task_struct *prev,
+	 *	    struct task_struct *next)
+	 */
+	return handle_switch(ctx, prev, next);
+}
+
+SEC("raw_tp/sched_wakeup")
+int BPF_PROG(handle_sched_wakeup, struct task_struct *p)
+{
+	return trace_enqueue(p);
+}
+
+SEC("raw_tp/sched_wakeup_new")
+int BPF_PROG(handle_sched_wakeup_new, struct task_struct *p)
+{
+	return trace_enqueue(p);
+}
+
+SEC("raw_tp/sched_switch")
+int BPF_PROG(handle_sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next)
+{
+	return handle_switch(ctx, prev, next);
 }
 
 char LICENSE[] SEC("license") = "GPL";
