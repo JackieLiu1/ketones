@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 #include <argp.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <time.h>
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
@@ -147,14 +143,12 @@ int main(int argc, char *argv[])
 	struct runqslower_bpf *bpf_obj;
 	int err;
 
-	if (getuid()) {
-		warning("Please run the tool as root - Exiting.\n");
-		return 1;
-	}
-
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
 	if (err)
 		return err;
+
+	if (!bpf_is_root())
+		return 1;
 
 	libbpf_set_print(libbpf_print_fn);
 
