@@ -11,6 +11,7 @@
 #include "runqslower.h"
 #include "runqslower.skel.h"
 #include "trace_helpers.h"
+#include "commons.h"
 
 static volatile sig_atomic_t exiting = 0;
 
@@ -67,7 +68,7 @@ static error_t parse_args(int key, char *arg, struct argp_state *state)
 		errno = 0;
 		pid = strtol(arg, NULL, 10);
 		if (errno || pid <= 0) {
-			fprintf(stderr, "Invalid PID: %s\n", arg);
+			warning("Invalid PID: %s\n", arg);
 			argp_usage(state);
 		}
 		env.pid = pid;
@@ -76,21 +77,20 @@ static error_t parse_args(int key, char *arg, struct argp_state *state)
 		errno = 0;
 		pid = strtol(arg, NULL, 10);
 		if (errno || pid <= 0) {
-			fprintf(stderr, "Invalid TID: %s\n", arg);
+			warning("Invalid TID: %s\n", arg);
 			argp_usage(state);
 		}
 		env.tid = pid;
 		break;
 	case ARGP_KEY_ARG:
 		if (pos_args++) {
-			fprintf(stderr,
-				"Unrecognized positional argument: %s\n", arg);
+			warning("Unrecognized positional argument: %s\n", arg);
 			argp_usage(state);
 		}
 		errno = 0;
 		min_us = strtoll(arg, NULL, 10);
 		if (errno || min_us <= 0) {
-			fprintf(stderr, "Invalid delay (in us): %s\n", arg);
+			warning("Invalid delay (in us): %s\n", arg);
 			argp_usage(state);
 		}
 		env.min_us = min_us;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 	int err;
 
 	if (getuid()) {
-		fprintf(stderr, "Please run the tool as root - Exiting.\n");
+		warning("Please run the tool as root - Exiting.\n");
 		return 1;
 	}
 
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 
 	bpf_obj = runqslower_bpf__open();
 	if (!bpf_obj) {
-		fprintf(stderr, "failed to open and/or load BPF object\n");
+		warning("failed to open and/or load BPF object\n");
 		return 1;
 	}
 
@@ -184,13 +184,13 @@ int main(int argc, char *argv[])
 
 	err = runqslower_bpf__load(bpf_obj);
 	if (err) {
-		fprintf(stderr, "failed to load BPF object: %d", err);
+		warning("failed to load BPF object: %d", err);
 		goto cleanup;
 	}
 
 	err = runqslower_bpf__attach(bpf_obj);
 	if (err) {
-		fprintf(stderr, "failed to attach BPF programs\n");
+		warning("failed to attach BPF programs\n");
 		goto cleanup;
 	}
 
@@ -204,12 +204,12 @@ int main(int argc, char *argv[])
 			      handle_event, handle_lost_events, NULL, NULL);
 	if (!pb) {
 		err = -errno;
-		fprintf(stderr, "failed to open perf buffer: %d\n", err);
+		warning("failed to open perf buffer: %d\n", err);
 		goto cleanup;
 	}
 
 	if (signal(SIGINT, sig_int) == SIG_ERR) {
-		fprintf(stderr, "can't set signal handler: %s\n", strerror(errno));
+		warning("can't set signal handler: %s\n", strerror(errno));
 		err = 1;
 		goto cleanup;
 	}
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 	while (!exiting) {
 		err = perf_buffer__poll(pb, 100);
 		if (err < 0 && err != -EINTR) {
-			fprintf(stderr, "error polling perf buffer: %s\n", strerror(-err));
+			warning("error polling perf buffer: %s\n", strerror(-err));
 			goto cleanup;
 		}
 		/* reset err to return 0 if exiting */

@@ -11,6 +11,7 @@
 #include "softirqs.h"
 #include "softirqs.skel.h"
 #include "trace_helpers.h"
+#include "commons.h"
 
 struct env {
 	bool distributed;
@@ -79,18 +80,17 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		if (pos_args == 0) {
 			env.interval = strtol(arg, NULL, 10);
 			if (errno) {
-				fprintf(stderr, "Invalid interval\n");
+				warning("Invalid interval\n");
 				argp_usage(state);
 			}
 		} else if (pos_args == 1) {
 			env.times = strtol(arg, NULL, 10);
 			if (errno) {
-				fprintf(stderr, "Invalid times\n");
+				warning("Invalid times\n");
 				argp_usage(state);
 			}
 		} else {
-			fprintf(stderr,
-				"Unrecongnized positional argument: %s\n", arg);
+			warning("Unrecongnized positional argument: %s\n", arg);
 			argp_usage(state);
 		}
 		pos_args++;
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
 	bpf_obj = softirqs_bpf__open();
 	if (!bpf_obj) {
-		fprintf(stderr, "failed to open BPF object\n");
+		warning("failed to open BPF object\n");
 		return 1;
 	}
 
@@ -231,18 +231,18 @@ int main(int argc, char *argv[])
 
 	err = softirqs_bpf__load(bpf_obj);
 	if (err) {
-		fprintf(stderr, "failed to load BPF objects: %d\n", err);
+		warning("failed to load BPF objects: %d\n", err);
 		goto cleanup;
 	}
 
 	if (!bpf_obj->bss) {
-		fprintf(stderr, "Memory-mapping BPF maps is supported starting from Linux 5.7, please upgrade.\n");
+		warning("Memory-mapping BPF maps is supported starting from Linux 5.7, please upgrade.\n");
 		goto cleanup;
 	}
 
 	err = softirqs_bpf__attach(bpf_obj);
 	if (err) {
-		fprintf(stderr, "failed to attach BPF programs\n");
+		warning("failed to attach BPF programs\n");
 		goto cleanup;
 	}
 
