@@ -1,54 +1,55 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
+
 #include "commons.h"
-#include "runqueue-latency.h"
-#include "runqueue-latency.skel.h"
+#include "cpudist.skel.h"
+#include "cpudist.h"
 #include "trace_helpers.h"
 
-struct env {
+static struct env {
 	time_t interval;
 	pid_t pid;
-	int times;
-	bool milliseconds;
-	bool per_process;
-	bool per_thread;
-	bool per_pidns;
-	bool timestamp;
-	bool verbose;
 	char *cgroupspath;
 	bool cg;
+	int times;
+	bool offcpu;
+	bool timestamp;
+	bool per_process;
+	bool per_thread;
+	bool milliseconds;
+	bool verbose;
 } env = {
-	.interval = 99999999,
+	.interval = 999999999,
+	.pid = -1,
 	.times = 99999999,
 };
 
 static volatile bool exiting = false;
 
-const char *argp_program_version = "runqueue-latency 0.1";
+const char *argp_program_version = "cpudist 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
 const char argp_program_doc[] =
-"Summarize run queue (scheduler) latency as a histogram.\n"
+"Summarize on-CPU time per task as a histogram.\n"
 "\n"
-"USAGE: runqlat [--help] [-T] [-m] [--pidnss] [-L] [-P] [-p PID] [interval] [count] [-c CG]\n"
+"USAGE: cpudist [--help] [-O] [-T] [-m] [-P] [-L] [-p PID] [interval] [count] [-c CG]\n"
 "\n"
 "EXAMPLES:\n"
-"    runqlat         # summarize run queue latency as a histogram\n"
-"    runqlat 1 10    # print 1 second summaries, 10 times\n"
-"    runqlat -mT 1   # 1s summaries, milliseconds, and timestamps\n"
-"    runqlat -P      # show each PID separately\n"
-"    runqlat -p 185  # trace PID 185 only\n"
-"    runqlat -c CG   # Trace process under cgroupsPath CG\n";
-
-#define OPT_PIDNSS	1 /* --pidnss */
+"    cpudist              # summarize on-CPU time as a histogram\n"
+"    cpudist -O           # summarize off-CPU time as a histogram\n"
+"    cpudist -c CG        # Trace process under cgroupsPath CG\n"
+"    cpudist 1 10         # print 1 second summaries, 10 times\n"
+"    cpudist -mT 1        # 1s summaries, milliseconds, and timestamps\n"
+"    cpudist -P           # show each PID separately\n"
+"    cpudist -p 185       # trace PID 185 only\n";
 
 static const struct argp_option opts[] = {
+	{ "offcpu", 'O', NULL, 0, "Measure off-CPU time" },
 	{ "timestamp", 'T', NULL, 0, "Include timestamp on output" },
 	{ "milliseconds", 'm', NULL, 0, "Millisecond histogram" },
-	{ "pidnss", OPT_PIDNSS, NULL, 0, "Print a histogram per PID namespace" },
+	{ "cgroup", 'c', "/sys/fs/cgroup/unified", 0, "Trace process in cgroup path" },
 	{ "pids", 'P', NULL, 0, "Print a histogram per process ID" },
 	{ "tids", 'L', NULL, 0, "Print a histogram per thread ID" },
-	{ "pid", 'p', "PID", 0, "Trace this PID only"},
+	{ "pid", 'p', "PID", 0, "Trace this PID only" },
 	{ "verbose", 'v', NULL, 0, "Verbose debug output" },
-	{ "cgroup", 'c', "/sys/fs/cgroup/unified", 0, "Trace process in cgroup path" },
 	{ NULL, 'h', NULL, OPTION_HIDDEN, "Show the full help" },
 	{},
 };
@@ -67,6 +68,10 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 	case 'm':
 		env.milliseconds = true;
 		break;
+	case 'c':
+		env.cgroupspath = arg;
+		env.cg = true;
+		break;
 	case 'p':
 		errno = 0;
 		env.pid = strtol(arg, NULL, 10);
@@ -75,21 +80,17 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 			argp_usage(state);
 		}
 		break;
-	case 'L':
-		env.per_thread = true;
+	case 'O':
+		env.offcpu = true;
 		break;
 	case 'P':
 		env.per_process = true;
 		break;
-	case OPT_PIDNSS:
-		env.per_pidns = true;
+	case 'L':
+		env.per_thread = true;
 		break;
 	case 'T':
 		env.timestamp = true;
-		break;
-	case 'c':
-		env.cgroupspath = arg;
-		env.cg = true;
 		break;
 	case ARGP_KEY_ARG:
 		errno = 0;
@@ -106,7 +107,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 				argp_usage(state);
 			}
 		} else {
-			warning("Unrecongnized positional argument: %s\n", arg);
+			warning("Unrecognized positional argument: %s\n", arg);
 			argp_usage(state);
 		}
 		pos_args++;
@@ -117,11 +118,11 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
+static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
+			   va_list args)
 {
 	if (level == LIBBPF_DEBUG && !env.verbose)
 		return 0;
-
 	return vfprintf(stderr, format, args);
 }
 
@@ -132,23 +133,22 @@ static void sig_handler(int sig)
 
 static int print_log2_hists(struct bpf_map *hists)
 {
-	const char *units = env.milliseconds ? "msecs" : "usecs";
-	int err, fd = bpf_map__fd(hists);
+	char *units = env.milliseconds ? "msecs" : "usecs";
 	__u32 lookup_key = -2, next_key;
-	struct hist hist;
+	int err, fd = bpf_map__fd(hists);
 
 	while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
+		struct hist hist;
+
 		err = bpf_map_lookup_elem(fd, &next_key, &hist);
 		if (err < 0) {
-			warning("Failed to lookup list: %d\n", err);
+			warning("Failed to lookup hist: %d\n", err);
 			return -1;
 		}
 		if (env.per_process)
-			printf("\npid = %d %s\n", next_key, hist.comm);
+			printf("\npid = %d %s\n\n", next_key, hist.comm);
 		else if (env.per_thread)
-			printf("\ntid = %d %s\n", next_key, hist.comm);
-		else if (env.per_pidns)
-			printf("\npidns = %u %s\n", next_key, hist.comm);
+			printf("\ntid = %d %s\n\n", next_key, hist.comm);
 		print_log2_hist(hist.slots, MAX_SLOTS, units);
 		lookup_key = next_key;
 	}
@@ -157,7 +157,7 @@ static int print_log2_hists(struct bpf_map *hists)
 	while (!bpf_map_get_next_key(fd, &lookup_key, &next_key)) {
 		err = bpf_map_delete_elem(fd, &next_key);
 		if (err < 0) {
-			warning("Failed to cleanup list : %d\n", err);
+			warning("Failed to cleanup hist: %d\n", err);
 			return -1;
 		}
 		lookup_key = next_key;
@@ -174,67 +174,65 @@ int main(int argc, char *argv[])
 		.doc = argp_program_doc,
 	};
 
-	struct runqueue_latency_bpf *bpf_obj;
-	struct tm *tm;
-	char ts[32];
-	time_t t;
-	int err;
-	int idx, cg_map_fd;
-	int cgfd = -1;
+	struct cpudist_bpf *bpf_obj;
+	int pid_max, err, cgfd = -1;
+
+	if (!bpf_is_root())
+		return 1;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
 	if (err)
 		return err;
 
-	if (!bpf_is_root())
-		return 1;
-
-	if ((env.per_thread && (env.per_process || env.per_pidns)) ||
-	    (env.per_process && env.per_pidns)) {
-		warning("pidnss, pids, tids cann't be used together.\n");
-		return 1;
-	}
-
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	libbpf_set_print(libbpf_print_fn);
 
-	bpf_obj = runqueue_latency_bpf__open();
+	bpf_obj = cpudist_bpf__open();
 	if (!bpf_obj) {
-		warning("failed to open BPF object\n");
+		warning("Failed to open BPF object\n");
 		return 1;
 	}
 
+	if (probe_tp_btf("sched_switch"))
+		bpf_program__set_autoload(bpf_obj->progs.sched_switch_raw, false);
+	else
+		bpf_program__set_autoload(bpf_obj->progs.sched_switch_btf, false);
+
 	/* initialize global data (filtering options) */
+	bpf_obj->rodata->filter_memcg = env.cg;
 	bpf_obj->rodata->target_per_process = env.per_process;
 	bpf_obj->rodata->target_per_thread = env.per_thread;
-	bpf_obj->rodata->target_per_pidns = env.per_pidns;
 	bpf_obj->rodata->target_ms = env.milliseconds;
+	bpf_obj->rodata->target_offcpu = env.offcpu;
 	bpf_obj->rodata->target_tgid = env.pid;
-	bpf_obj->rodata->filter_memcg = env.cg;
 
-	if (probe_tp_btf("sched_wakeup")) {
-		bpf_program__set_autoload(bpf_obj->progs.sched_wakeup_raw, false);
-		bpf_program__set_autoload(bpf_obj->progs.sched_wakeup_new_raw, false);
-		bpf_program__set_autoload(bpf_obj->progs.sched_switch_raw, false);
-	} else {
-		bpf_program__set_autoload(bpf_obj->progs.sched_wakeup_btf, false);
-		bpf_program__set_autoload(bpf_obj->progs.sched_wakeup_new_btf, false);
-		bpf_program__set_autoload(bpf_obj->progs.sched_switch_btf, false);
+	pid_max = get_pid_max();
+	if (pid_max < 0) {
+		warning("Failed to get pid_max\n");
+		return 1;
 	}
 
-	err = runqueue_latency_bpf__load(bpf_obj);
+	bpf_map__set_max_entries(bpf_obj->maps.start, pid_max);
+	if (!env.per_process && !env.per_thread)
+		bpf_map__set_max_entries(bpf_obj->maps.hists, 1);
+	else
+		bpf_map__set_max_entries(bpf_obj->maps.hists, pid_max);
+
+
+	err = cpudist_bpf__load(bpf_obj);
 	if (err) {
-		warning("failed to load BPF object: %d\n", err);
+		warning("Failed to load BPF object: %d\n", err);
 		goto cleanup;
 	}
 
-	/* update cgroup path to map */
+	/* Update cgroup path fd to map */
 	if (env.cg) {
-		idx = 0;
-		cg_map_fd = bpf_map__fd(bpf_obj->maps.cgroup_map);
+		int idx = 0;
+		int cg_map_fd = bpf_map__fd(bpf_obj->maps.cgroup_map);
+
 		cgfd = open(env.cgroupspath, O_RDONLY);
 		if (cgfd < 0) {
-			warning("Failed opening Cgroup path: %s", env.cgroupspath);
+			warning("Failed opening Cgroup path: %s\n", env.cgroupspath);
 			goto cleanup;
 		}
 		if (bpf_map_update_elem(cg_map_fd, &idx, &cgfd, BPF_ANY)) {
@@ -243,22 +241,25 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	err = runqueue_latency_bpf__attach(bpf_obj);
+	err = cpudist_bpf__attach(bpf_obj);
 	if (err) {
-		warning("Failed to attach BPF programs");
+		warning("Failed to attach BPF programs\n");
 		goto cleanup;
 	}
 
-	printf("Tracing run queue lantency... Hit Ctrl-C to end.\n");
-
 	signal(SIGINT, sig_handler);
+	printf("Tracing %s-CPU time... Hit Ctrl-C to end.\n", env.offcpu ? "off" : "on");
 
-	/* main loop */
+	/* Main poll */
 	for (;;) {
 		sleep(env.interval);
 		printf("\n");
 
 		if (env.timestamp) {
+			struct tm *tm;
+			char ts[32];
+			time_t t;
+
 			time(&t);
 			tm = localtime(&t);
 			strftime(ts, sizeof(ts), "%H:%M:%S", tm);
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
 	}
 
 cleanup:
-	runqueue_latency_bpf__destroy(bpf_obj);
+	cpudist_bpf__destroy(bpf_obj);
 	if (cgfd > 0)
 		close(cgfd);
 

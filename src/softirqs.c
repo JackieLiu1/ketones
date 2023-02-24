@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
-#include <argp.h>
-#include <signal.h>
-#include <time.h>
-#include <bpf/bpf.h>
-#include <bpf/libbpf.h>
+#include "commons.h"
 #include "softirqs.h"
 #include "softirqs.skel.h"
 #include "trace_helpers.h"
-#include "commons.h"
 
 struct env {
 	bool distributed;

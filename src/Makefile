@@ -16,7 +16,7 @@ INCLUDES := -I$(OUTPUT) -I../../libbpf/include/uapi -I$(dir $(VMLINUX))
 CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
-APPS := runqslower softirqs hardirqs runqueue-latency
+APPS := runqslower softirqs hardirqs runqueue-latency cpudist
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o
 
