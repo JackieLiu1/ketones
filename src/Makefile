@@ -17,7 +17,7 @@ CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 APPS := runqslower softirqs hardirqs runqueue-latency cpudist offcputime \
-	execsnoop
+	execsnoop wakeuptime
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
 		   $(OUTPUT)/btf_helpers.o
