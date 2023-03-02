@@ -223,7 +223,7 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 	if (env.print_uid)
 		printf("%-6d", e->uid);
 
-	printf("%-16s %-6d %-6d %3d ", e->comm, e->pid, e->ppid, e->retval);
+	printf("%-16s %-8d %-8d %3d ", e->comm, e->pid, e->ppid, e->retval);
 	print_args(e, env.quote);
 	putchar('\n');
 }
@@ -274,6 +274,14 @@ int main(int argc, char *argv[])
 	bpf_obj->rodata->max_args = env.max_args;
 	bpf_obj->rodata->filter_memcg = env.cg;
 
+	if (!tracepoint_exists("syscalls", "sys_enter_execve")) {
+		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_enter_execve, false);
+		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_exit_execve, false);
+	} else {
+		bpf_program__set_autoload(bpf_obj->progs.kprobe_syscall_enter_execve, false);
+		bpf_program__set_autoload(bpf_obj->progs.kprobe_syscall_exit_execve, false);
+	}
+
 	err = execsnoop_bpf__load(bpf_obj);
 	if (err) {
 		warning("Failed to load BPF object: %d\n", err);
@@ -308,7 +316,7 @@ int main(int argc, char *argv[])
 	if (env.print_uid)
 		printf("%-6s ", "UID");
 
-	printf("%-16s %-6s %-6s %3s %s\n", "PCOMM", "PID", "PPID", "RET", "ARGS");
+	printf("%-16s %-8s %-8s %3s %s\n", "PCOMM", "PID", "PPID", "RET", "ARGS");
 
 	pb = perf_buffer__new(bpf_map__fd(bpf_obj->maps.events), PERF_BUFFER_PAGES,
 			      handle_event, handle_lost_events, NULL, NULL);

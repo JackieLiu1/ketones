@@ -35,9 +35,8 @@ struct {
 	__uint(value_size, sizeof(u32));
 } events SEC(".maps");
 
-SEC("ksyscall/execve")
-int BPF_KSYSCALL(syscall_enter_execve, const char *filename, const char *argv[],
-		 const char *env[])
+int syscall_enter_execve(const char *filename, const char **argv,
+			 const char **env)
 {
 	uid_t uid;
 	pid_t pid, tgid;
@@ -61,7 +60,7 @@ int BPF_KSYSCALL(syscall_enter_execve, const char *filename, const char *argv[],
 	if (!event)
 		return 0;
 
-	event->pid = pid;
+	event->pid = tgid;
 	event->uid = uid;
 	event->ppid = BPF_CORE_READ(task, real_parent, tgid);
 	event->args_count = 0;
@@ -71,12 +70,12 @@ int BPF_KSYSCALL(syscall_enter_execve, const char *filename, const char *argv[],
 	ret = bpf_probe_read_user_str(event->args, ARGSIZE, filename);
 	if (ret <= ARGSIZE) {
 		event->args_size += ret;
-		event->args_count++;
 	} else {
 		/* write an empty string */
-		event->args[0] = 0;
-		return 0;
+		event->args[0] = '\0';
+		event->args_size++;
 	}
+	event->args_count++;
 
 	#pragma unroll
 	for (int i = 1; i < TOTAL_MAX_ARGS && i < max_args; i++) {
@@ -89,6 +88,8 @@ int BPF_KSYSCALL(syscall_enter_execve, const char *filename, const char *argv[],
 
 		ret = bpf_probe_read_user_str(&event->args[event->args_size],
 					      ARGSIZE, argp);
+		if (ret > ARGSIZE)
+			return 0;
 
 		event->args_size += ret;
 		event->args_count++;
@@ -104,8 +105,7 @@ int BPF_KSYSCALL(syscall_enter_execve, const char *filename, const char *argv[],
 	return 0;
 }
 
-SEC("kretsyscall/execve")
-int BPF_KSYSCALL(syscall_exit_execve, int ret)
+static int syscall_exit_execve(void *ctx, int ret)
 {
 	pid_t pid;
 	uid_t uid;
@@ -137,6 +137,35 @@ int BPF_KSYSCALL(syscall_exit_execve, int ret)
 cleanup:
 	bpf_map_delete_elem(&execs, &pid);
 	return 0;
+}
+
+SEC("tracepoint/syscalls/sys_enter_execve")
+int tracepoint_syscall_enter_execve(struct trace_event_raw_sys_enter *ctx)
+{
+	const char *filename = (const char *)(ctx->args[0]);
+	const char **argv = (const char **)(ctx->args[1]);
+	const char **env = (const char **)(ctx->args[2]);
+
+	return syscall_enter_execve(filename, argv, env);
+}
+
+SEC("ksyscall/execve")
+int BPF_KPROBE(kprobe_syscall_enter_execve, const char *filename,
+	       const char **argv, const char **env)
+{
+	return syscall_enter_execve(filename, argv, env);
+}
+
+SEC("tracepoint/syscalls/sys_exit_execve")
+int tracepoint_syscall_exit_execve(struct trace_event_raw_sys_exit *ctx)
+{
+	return syscall_exit_execve(ctx, ctx->ret);
+}
+
+SEC("kretsyscall/execve")
+int BPF_KPROBE(kprobe_syscall_exit_execve, int ret)
+{
+	return syscall_exit_execve(ctx, ret);
 }
 
 char LICENSE[] SEC("license") = "GPL";
