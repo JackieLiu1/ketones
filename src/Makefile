@@ -17,7 +17,7 @@ CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 APPS := runqslower softirqs hardirqs runqueue-latency cpudist offcputime \
-	execsnoop wakeuptime numamove
+	execsnoop wakeuptime numamove numasched
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
 		   $(OUTPUT)/btf_helpers.o
@@ -96,6 +96,8 @@ $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 $(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
+
+numasched: ALL_LDFLAGS += -lnuma
 
 # Build application binary
 $(APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) $(COMMON_LIBS_OBJ) | $(OUTPUT)
