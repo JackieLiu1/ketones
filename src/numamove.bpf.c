@@ -70,7 +70,6 @@ static int __migrate_misplaced_page_exit(void)
 	__sync_fetch_and_add(&latency, delta / 1000000UL);
 	__sync_fetch_and_add(&num, 1);
 #else
-
 	value = bpf_map_lookup_or_try_init(&latency_map, &key, &zero);
 	if (!value)
 		goto cleanup;
@@ -94,7 +93,7 @@ int BPF_PROG(fexit_migrate_misplaced_page)
 }
 
 SEC("kretprobe/migrate_misplaced_page")
-int BPF_KPROBE(kretprobe_migrate_misplaced_page)
+int BPF_KRETPROBE(kretprobe_migrate_misplaced_page)
 {
 	return __migrate_misplaced_page_exit();
 }
