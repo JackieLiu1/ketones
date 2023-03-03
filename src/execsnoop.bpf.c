@@ -35,8 +35,8 @@ struct {
 	__uint(value_size, sizeof(u32));
 } events SEC(".maps");
 
-int syscall_enter_execve(const char *filename, const char **argv,
-			 const char **env)
+static inline int syscall_enter_execve(const char *filename, const char *const *argv,
+				       const char *const *env)
 {
 	uid_t uid;
 	pid_t pid, tgid;
@@ -66,8 +66,8 @@ int syscall_enter_execve(const char *filename, const char **argv,
 	event->args_count = 0;
 	event->args_size = 0;
 
-	/* record filenem */
-	ret = bpf_probe_read_user_str(event->args, ARGSIZE, filename);
+	/* record filename */
+	ret = bpf_core_read_user_str(event->args, ARGSIZE, filename);
 	if (ret <= ARGSIZE) {
 		event->args_size += ret;
 	} else {
@@ -79,14 +79,14 @@ int syscall_enter_execve(const char *filename, const char **argv,
 
 	#pragma unroll
 	for (int i = 1; i < TOTAL_MAX_ARGS && i < max_args; i++) {
-		bpf_probe_read_user(&argp, sizeof(argp), &argv[i]);
+		bpf_core_read_user(&argp, sizeof(argp), &argv[i]);
 		if (!argp)
 			return 0;
 
 		if (event->args_size > LAST_ARG)
 			return 0;
 
-		ret = bpf_probe_read_user_str(&event->args[event->args_size],
+		ret = bpf_core_read_user_str(&event->args[event->args_size],
 					      ARGSIZE, argp);
 		if (ret > ARGSIZE)
 			return 0;
@@ -96,7 +96,7 @@ int syscall_enter_execve(const char *filename, const char **argv,
 	}
 
 	/* try to read one more argument to check if there is one */
-	bpf_probe_read_user_str(&argp, sizeof(argp), &argv[max_args]);
+	bpf_core_read_user_str(&argp, sizeof(argp), &argv[max_args]);
 	if (!argp)
 		return 0;
 
@@ -105,7 +105,7 @@ int syscall_enter_execve(const char *filename, const char **argv,
 	return 0;
 }
 
-static int syscall_exit_execve(void *ctx, int ret)
+static inline int syscall_exit_execve(void *ctx, int ret)
 {
 	pid_t pid;
 	uid_t uid;
@@ -143,15 +143,15 @@ SEC("tracepoint/syscalls/sys_enter_execve")
 int tracepoint_syscall_enter_execve(struct trace_event_raw_sys_enter *ctx)
 {
 	const char *filename = (const char *)(ctx->args[0]);
-	const char **argv = (const char **)(ctx->args[1]);
-	const char **env = (const char **)(ctx->args[2]);
+	const char *const *argv = (const char **)(ctx->args[1]);
+	const char *const *env = (const char **)(ctx->args[2]);
 
 	return syscall_enter_execve(filename, argv, env);
 }
 
 SEC("ksyscall/execve")
 int BPF_KPROBE(kprobe_syscall_enter_execve, const char *filename,
-	       const char **argv, const char **env)
+	       const char *const *argv, const char *const *env)
 {
 	return syscall_enter_execve(filename, argv, env);
 }
@@ -163,7 +163,7 @@ int tracepoint_syscall_exit_execve(struct trace_event_raw_sys_exit *ctx)
 }
 
 SEC("kretsyscall/execve")
-int BPF_KPROBE(kprobe_syscall_exit_execve, int ret)
+int BPF_KRETPROBE(kprobe_syscall_exit_execve, int ret)
 {
 	return syscall_exit_execve(ctx, ret);
 }

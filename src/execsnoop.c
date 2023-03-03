@@ -221,7 +221,7 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		printf("%-8.3f", time_since_start(start_time));
 
 	if (env.print_uid)
-		printf("%-6d", e->uid);
+		printf("%-6d ", e->uid);
 
 	printf("%-16s %-8d %-8d %3d ", e->comm, e->pid, e->ppid, e->retval);
 	print_args(e, env.quote);
