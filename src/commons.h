@@ -18,6 +18,12 @@
 #define NSEC_PER_SEC		1000000000ULL
 #endif
 
+#define max(x, y) ({				\
+	typeof(x) __max1 = (x);			\
+	typeof(y) __max2 = (y);			\
+	(void) (&__max1 == &__max2);		\
+	__max1 > __max2 ? __max1 : __max2; })
+
 static inline bool bpf_is_root()
 {
 	if (getuid()) {
