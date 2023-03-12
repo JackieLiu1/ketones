@@ -17,10 +17,11 @@ CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 APPS := runqslower runqlen runqueue-latency softirqs hardirqs cpudist offcputime \
-	execsnoop wakeuptime numamove numasched bashreadline gethostlatency
+	execsnoop wakeuptime numamove numasched bashreadline gethostlatency \
+	funclatency
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
-		   $(OUTPUT)/btf_helpers.o
+		   $(OUTPUT)/btf_helpers.o $(OUTPUT)/map_helpers.o
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some
