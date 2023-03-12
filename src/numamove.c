@@ -2,6 +2,7 @@
 #include "commons.h"
 #include "numamove.skel.h"
 #include "trace_helpers.h"
+#include <numa.h>
 
 static struct env {
 	bool verbose;
@@ -72,6 +73,11 @@ int main(int argc, char *argv[])
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
 	if (err)
 		return err;
+
+        if (numa_max_node() == 0) {
+                printf("We only have one NUMA Node, so we don't need to track NUMA moving.\n");
+                return 0;
+        }
 
 	if (!bpf_is_root())
 		return 1;

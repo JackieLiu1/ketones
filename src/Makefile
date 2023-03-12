@@ -97,7 +97,7 @@ $(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
-numasched: ALL_LDFLAGS += -lnuma
+numasched numamove: ALL_LDFLAGS += -lnuma
 
 # Build application binary
 $(APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) $(COMMON_LIBS_OBJ) | $(OUTPUT)
