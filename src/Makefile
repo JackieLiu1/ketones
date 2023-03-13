@@ -16,9 +16,22 @@ INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX))
 CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
-APPS := runqslower runqlen runqueue-latency softirqs hardirqs cpudist offcputime \
-	execsnoop wakeuptime numamove numasched bashreadline gethostlatency \
-	funclatency biotop
+APPS += bashreadline
+APPS += biotop
+APPS += cpudist
+APPS += cpufreq
+APPS += execsnoop
+APPS += funclatency
+APPS += gethostlatency
+APPS += hardirqs
+APPS += numamove
+APPS += numasched
+APPS += offcputime
+APPS += runqlen
+APPS += runqslower
+APPS += runqueue-latency
+APPS += softirqs
+APPS += wakeuptime
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
 		   $(OUTPUT)/btf_helpers.o $(OUTPUT)/map_helpers.o	\
