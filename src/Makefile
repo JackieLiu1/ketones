@@ -18,10 +18,11 @@ ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 APPS := runqslower runqlen runqueue-latency softirqs hardirqs cpudist offcputime \
 	execsnoop wakeuptime numamove numasched bashreadline gethostlatency \
-	funclatency
+	funclatency biotop
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
-		   $(OUTPUT)/btf_helpers.o $(OUTPUT)/map_helpers.o
+		   $(OUTPUT)/btf_helpers.o $(OUTPUT)/map_helpers.o	\
+		   $(OUTPUT)/compat.o
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some
@@ -101,7 +102,7 @@ $(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) | $(OUTPUT)
 numasched numamove: ALL_LDFLAGS += -lnuma
 
 # Build application binary
-$(APPS): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) $(COMMON_LIBS_OBJ) | $(OUTPUT)
+$(APPS): %: $(OUTPUT)/%.o $(COMMON_LIBS_OBJ) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 
