@@ -17,6 +17,7 @@ CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 
 APPS += bashreadline
+APPS += bindsnoop
 APPS += biotop
 APPS += cpudist
 APPS += cpufreq
