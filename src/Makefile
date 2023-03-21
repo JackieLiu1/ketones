@@ -19,6 +19,7 @@ ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 APPS += bashreadline
 APPS += bindsnoop
 APPS += biolatency
+APPS += biopattern
 APPS += biotop
 APPS += cpudist
 APPS += cpufreq
