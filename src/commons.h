@@ -24,6 +24,8 @@
 	(void) (&__max1 == &__max2);		\
 	__max1 > __max2 ? __max1 : __max2; })
 
+#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(*(x)))
+
 static inline bool bpf_is_root()
 {
 	if (getuid()) {
