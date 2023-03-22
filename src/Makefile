@@ -21,6 +21,7 @@ APPS += bindsnoop
 APPS += biolatency
 APPS += biopattern
 APPS += biosnoop
+APPS += biostacks
 APPS += biotop
 APPS += cpudist
 APPS += cpufreq
