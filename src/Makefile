@@ -23,6 +23,7 @@ APPS += biopattern
 APPS += biosnoop
 APPS += biostacks
 APPS += biotop
+APPS += bitesize
 APPS += cpudist
 APPS += cpufreq
 APPS += execsnoop
@@ -38,9 +39,11 @@ APPS += runqueue-latency
 APPS += softirqs
 APPS += wakeuptime
 
-COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o $(OUTPUT)/uprobe_helpers.o \
-		   $(OUTPUT)/btf_helpers.o $(OUTPUT)/map_helpers.o	\
-		   $(OUTPUT)/compat.o
+COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/uprobe_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/btf_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/map_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/compat.o
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some

@@ -24,6 +24,12 @@
 	(void) (&__max1 == &__max2);		\
 	__max1 > __max2 ? __max1 : __max2; })
 
+#define min(x, y) ({				\
+	typeof(x) __min1 = (x);			\
+	typeof(y) __min2 = (y);			\
+	(void) (&__min1 == &__min2);		\
+	__min1 > __min2 ? __min2 : __min1; })
+
 #define ARRAY_SIZE(x)	(sizeof(x) / sizeof(*(x)))
 
 static inline bool bpf_is_root()
