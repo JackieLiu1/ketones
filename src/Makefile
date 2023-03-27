@@ -30,6 +30,7 @@ APPS += cpudist
 APPS += cpufreq
 APPS += drsnoop
 APPS += execsnoop
+APPS += exitsnoop
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs
