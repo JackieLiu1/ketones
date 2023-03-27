@@ -31,6 +31,7 @@ APPS += cpufreq
 APPS += drsnoop
 APPS += execsnoop
 APPS += exitsnoop
+APPS += filelife
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs

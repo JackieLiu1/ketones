@@ -18,9 +18,6 @@ static struct env {
 	.tid = INVALID_PID,
 };
 
-#define PERF_POLL_TIMEOUT_MS	100
-#define PERF_BUFFER_PAGES	64
-
 const char *argp_program_version = "numasched 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
 const char argp_program_doc[] =

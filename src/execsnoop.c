@@ -5,8 +5,6 @@
 #include "trace_helpers.h"
 #include "btf_helpers.h"
 
-#define PERF_BUFFER_PAGES	64
-#define PERF_POLL_TIMEOUT_MS	100
 #define MAX_ARGS_KEY		259
 
 static volatile sig_atomic_t exiting = 0;

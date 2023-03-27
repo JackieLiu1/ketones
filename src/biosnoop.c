@@ -5,9 +5,6 @@
 #include "biosnoop.skel.h"
 #include "trace_helpers.h"
 
-#define PERF_BUFFER_PAGES	64
-#define PERF_POLL_TIMEOUT_MS	100
-
 static volatile sig_atomic_t exiting = 0;
 
 static struct env {

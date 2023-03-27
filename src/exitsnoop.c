@@ -5,9 +5,6 @@
 #include "btf_helpers.h"
 #include "trace_helpers.h"
 
-#define PERF_BUFFER_PAGES	16
-#define PERF_POLL_TIMEOUT_MS	100
-
 static volatile bool exiting = false;
 static volatile bool verbose = false;
 

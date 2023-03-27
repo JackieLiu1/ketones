@@ -17,6 +17,9 @@
 #ifndef NSEC_PER_SEC
 #define NSEC_PER_SEC		1000000000ULL
 #endif
+#define ARRAY_SIZE(x)		(sizeof(x) / sizeof(*(x)))
+#define PERF_BUFFER_PAGES	64
+#define PERF_POLL_TIMEOUT_MS	100
 
 #define max(x, y) ({				\
 	typeof(x) __max1 = (x);			\
@@ -29,8 +32,6 @@
 	typeof(y) __min2 = (y);			\
 	(void) (&__min1 == &__min2);		\
 	__min1 > __min2 ? __min2 : __min1; })
-
-#define ARRAY_SIZE(x)	(sizeof(x) / sizeof(*(x)))
 
 static inline bool bpf_is_root()
 {

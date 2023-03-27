@@ -4,9 +4,6 @@
 #include "capable.skel.h"
 #include "trace_helpers.h"
 
-#define PERF_BUFFER_PAGES	64
-#define PERF_POLL_TIMEOUT_MS	100
-
 struct argument {
 	char *cgroupspath;
 	bool cg;
