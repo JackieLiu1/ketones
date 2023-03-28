@@ -167,6 +167,12 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
+	partitions = partitions__load();
+	if (!partitions) {
+		warning("failed to load partitions info\n");
+		goto cleanup;
+	}
+
 	if (argument.comm)
 		strncpy((char *)obj->rodata->target_comm, argument.comm, argument.comm_len);
 	if (argument.disk) {
