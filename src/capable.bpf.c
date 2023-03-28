@@ -9,7 +9,8 @@
 
 extern int LINUX_KERNEL_VERSION	__kconfig;
 
-const volatile pid_t my_pid = -1;
+struct myinfo myinfo = {};
+
 const volatile enum uniqueness unique_type = UNQ_OFF;
 const volatile bool kernel_stack = false;
 const volatile bool user_stack = false;
@@ -71,31 +72,22 @@ int BPF_KPROBE(kprobe__cap_capable_entry, const struct cred *cred,
 	       struct user_namespace *target_ns, int cap, int cap_out)
 {
 	__u64 pid_tgid;
-	pid_t pid;
 	char comm[TASK_COMM_LEN] = {};
+	struct bpf_pidns_info nsdata;
 
 	if (filter_cg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
 		return 0;
 
-	pid_tgid = bpf_get_current_pid_tgid();
-	pid = pid_tgid >> 32;
 
-	/*
-	 * If running in a container or WSL, the process id from getpid() and
-	 * bpf_get_current_pid_tgid() >> 32 are different, so use process name
-	 * to check.
-	 */
-	if (pid == my_pid) {
+	if (bpf_get_ns_current_pid_tgid(myinfo.dev, myinfo.ino, &nsdata,
+					sizeof(struct bpf_pidns_info)))
 		return 0;
-	} else {
-		bpf_get_current_comm(comm, sizeof(comm));
-		if (comm[0] == 'c' && comm[1] == 'a' && comm[2] == 'p' &&
-		    comm[3] == 'a' && comm[4] == 'b' && comm[5] == 'l' &&
-		    comm[6] == 'e' && comm[7] == '\0')
-			return 0;
-	}
 
-	if (target_pid != -1 && target_pid != pid)
+	pid_tgid = (__u64)nsdata.tgid << 32 | nsdata.pid;
+	if (myinfo.pid_tgid == pid_tgid)
+		return 0;
+
+	if (target_pid != -1 && target_pid != nsdata.tgid)
 		return 0;
 
 	struct args_t args = {};
@@ -113,8 +105,13 @@ int BPF_KRETPROBE(kretprobe__cap_capable_exit)
 	__u64 pid_tgid;
 	struct args_t *argsp;
 	struct key_t i_key;
+	struct bpf_pidns_info nsdata;
 
-	pid_tgid = bpf_get_current_pid_tgid();
+	if (bpf_get_ns_current_pid_tgid(myinfo.dev, myinfo.ino, &nsdata,
+					sizeof(struct bpf_pidns_info)))
+		return 0;
+
+	pid_tgid = (__u64)nsdata.tgid << 32 | nsdata.pid;
 	argsp = bpf_map_lookup_elem(&start, &pid_tgid);
 	if (!argsp)
 		return 0;

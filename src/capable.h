@@ -28,4 +28,10 @@ enum uniqueness {
 	UNQ_CGROUP,
 };
 
+struct myinfo {
+        __u64 pid_tgid;
+        __u64 dev;
+        __u64 ino;
+};
+
 #endif

@@ -3,6 +3,8 @@
 #include "capable.h"
 #include "capable.skel.h"
 #include "trace_helpers.h"
+#include <sys/stat.h>
+#include <sys/syscall.h>
 
 struct argument {
 	char *cgroupspath;
@@ -292,6 +294,7 @@ int main(int argc, char *argv[])
 	int err;
 	int cgfd = -1;
 	enum uniqueness uniqueness_type = UNQ_OFF;
+	struct stat st;
 	struct argument argument = {
 		.pid = -1,
 		.stack_storage_size = 1024,
@@ -334,7 +337,6 @@ int main(int argc, char *argv[])
 	obj->rodata->user_stack = argument.user_stack;
 	obj->rodata->kernel_stack = argument.kernel_stack;
 	obj->rodata->unique_type = uniqueness_type;
-	obj->rodata->my_pid = getpid();
 
 	bpf_map__set_value_size(obj->maps.stackmap,
 				argument.perf_max_stack_depth * sizeof(unsigned long));
@@ -345,6 +347,20 @@ int main(int argc, char *argv[])
 		warning("Failed to load BPF object: %d\n", err);
 		goto cleanup;
 	}
+
+	if (!obj->bss) {
+                warning("Memory-mapping BPF maps is supported starting from Linux 5.7, please upgrade.\n");
+                goto cleanup;
+        }
+
+	if (stat("/proc/self/ns/pid", &st)) {
+		warning("Failed to stat pid file\n");
+		goto cleanup;
+	}
+
+	obj->bss->myinfo.pid_tgid = getpid() | syscall(SYS_gettid) << 32;
+	obj->bss->myinfo.dev = st.st_dev;
+	obj->bss->myinfo.ino = st.st_ino;
 
 	/* update cgroup path fd to map */
 	if (argument.cg) {
