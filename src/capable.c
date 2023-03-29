@@ -324,7 +324,6 @@ int main(int argc, char *argv[])
 	}
 
 	libbpf_set_print(libbpf_print_fn);
-	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	obj = capable_bpf__open();
 	if (!obj) {

@@ -181,7 +181,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	libbpf_set_print(libbpf_print_fn);
 
 	bpf_obj = hardirqs_bpf__open();

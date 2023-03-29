@@ -147,9 +147,6 @@ int main(int argc, char *argv[])
 
 	libbpf_set_print(libbpf_print_fn);
 
-	/* Use libbpf 1.0 API mode */
-	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
-
 	bpf_obj = runqslower_bpf__open();
 	if (!bpf_obj) {
 		warning("failed to open and/or load BPF object\n");

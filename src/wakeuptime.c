@@ -213,7 +213,6 @@ int main(int argc, char *argv[])
 	if (env.user_threads_only && env.pid > 0)
 		warning("use either -u or -p");
 
-	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	libbpf_set_print(libbpf_print_fn);
 
 	bpf_obj = wakeuptime_bpf__open();

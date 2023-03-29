@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
 		return 1;
 
 	libbpf_set_print(libbpf_print_fn);
-	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	bpf_obj = numamove_bpf__open();
 	if (!bpf_obj) {
