@@ -33,6 +33,7 @@ APPS += execsnoop
 APPS += exitsnoop
 APPS += filelife
 APPS += filetop
+APPS += fsdist
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs

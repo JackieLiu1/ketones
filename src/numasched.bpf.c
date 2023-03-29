@@ -32,8 +32,6 @@ static int handle_sched_switch(void *ctx, struct task_struct *prev,
 	if (tgid == 0)
 		return 0;
 
-	bpf_printk("%lx %ld\n", target_tgid, tgid);
-
 	if (target_tgid != INVALID_PID && target_tgid != tgid)
 		return 0;
 
