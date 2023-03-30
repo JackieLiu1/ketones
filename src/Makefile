@@ -34,6 +34,7 @@ APPS += exitsnoop
 APPS += filelife
 APPS += filetop
 APPS += fsdist
+APPS += fsslower
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs
