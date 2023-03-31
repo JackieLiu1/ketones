@@ -38,6 +38,7 @@ APPS += fsslower
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs
+APPS += klockstat
 APPS += numamove
 APPS += numasched
 APPS += offcputime
