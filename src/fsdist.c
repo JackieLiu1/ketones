@@ -376,6 +376,11 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
+	if (!obj->bss) {
+		warning("Memory-mapping BPF maps is supported starting from Linux 5.7, please upgrade.\n");
+		goto cleanup;
+	}
+
 	/*
 	 * after load
 	 * if entry is supported, let libbpf do auto load otherwise, we attach
