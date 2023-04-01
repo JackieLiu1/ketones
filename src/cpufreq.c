@@ -212,10 +212,21 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	obj = cpufreq_bpf__open_and_load();
+	obj = cpufreq_bpf__open();
 	if (!obj) {
-		warning("Failed to open and/or load BPF object\n");
+		warning("Failed to open BPF object\n");
 		return 1;
+	}
+
+	if (probe_tp_btf("cpu_frequency"))
+		bpf_program__set_autoload(obj->progs.cpu_frequency_raw, false);
+	else
+		bpf_program__set_autoload(obj->progs.cpu_frequency, false);
+
+	err = cpufreq_bpf__load(obj);
+	if (err) {
+		warning("Failed to load BPF object\n");
+		goto cleanup;
 	}
 
 	if (!obj->bss) {

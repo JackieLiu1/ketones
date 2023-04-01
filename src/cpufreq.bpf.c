@@ -25,8 +25,7 @@ struct {
 	__type(value, struct hist);
 } hists SEC(".maps");
 
-SEC("tp_btf/cpu_frequency")
-int BPF_PROG(cpu_frequency, unsigned int state, unsigned int cpu_id)
+static __always_inline int probe_cpu_frequency(unsigned int state, unsigned int cpu_id)
 {
 	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
 		return 0;
@@ -36,6 +35,18 @@ int BPF_PROG(cpu_frequency, unsigned int state, unsigned int cpu_id)
 
 	freqs_mhz[cpu_id] = state / 1000;
 	return 0;
+}
+
+SEC("tp_btf/cpu_frequency")
+int BPF_PROG(cpu_frequency, unsigned int state, unsigned int cpu_id)
+{
+	return probe_cpu_frequency(state, cpu_id);
+}
+
+SEC("raw_btf/cpu_frequency_raw")
+int BPF_PROG(cpu_frequency_raw, unsigned int state, unsigned int cpu_id)
+{
+	return probe_cpu_frequency(state, cpu_id);
 }
 
 SEC("perf_event")
