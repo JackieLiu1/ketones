@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 			int num_fd = bpf_map__fd(bpf_obj->maps.num_map);
 			int latency_fd = bpf_map__fd(bpf_obj->maps.latency_map);
 			int key = 0, value = 0;
-			__u64 num, latency;
+			__u64 num = 0, latency = 0;
 
 			bpf_map_lookup_elem(num_fd, &key, &num);
 			bpf_map_lookup_elem(latency_fd, &key, &latency);
