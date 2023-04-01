@@ -33,7 +33,7 @@ static __always_inline bool comm_allowed(const char *comm)
 	return true;
 }
 
-static int trace_rq_issue(struct request *rq)
+static __always_inline int trace_rq_issue(struct request *rq)
 {
 	struct hist_key hkey;
 	struct hist *histp;
@@ -67,6 +67,15 @@ static int trace_rq_issue(struct request *rq)
 
 SEC("tp_btf/block_rq_issue")
 int BPF_PROG(block_rq_issue)
+{
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 11, 0))
+		return trace_rq_issue((void *)ctx[0]);
+	else
+		return trace_rq_issue((void *)ctx[1]);
+}
+
+SEC("raw_tp/block_rq_issue")
+int BPF_PROG(block_rq_issue_raw)
 {
 	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 11, 0))
 		return trace_rq_issue((void *)ctx[0]);

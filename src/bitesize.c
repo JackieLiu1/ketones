@@ -172,6 +172,11 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
+	if (probe_tp_btf("block_rq_issue"))
+		bpf_program__set_autoload(obj->progs.block_rq_issue_raw, false);
+	else
+		bpf_program__set_autoload(obj->progs.block_rq_issue, false);
+
 	if (argument.comm)
 		strncpy((char *)obj->rodata->target_comm, argument.comm, argument.comm_len);
 	if (argument.disk) {
