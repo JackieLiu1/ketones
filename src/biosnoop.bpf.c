@@ -73,6 +73,15 @@ int BPF_PROG(blk_account_io_start, struct request *rq)
 	return trace_pid(rq);
 }
 
+SEC("kprobe/blk_account_io_start")
+int BPF_KPROBE(kprobe_blk_account_io_start, struct request *rq)
+{
+	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
+		return 0;
+
+	return trace_pid(rq);
+}
+
 SEC("kprobe/blk_account_io_merge_bio")
 int BPF_KPROBE(blk_account_io_merge_bio, struct request *rq)
 {
@@ -121,6 +130,18 @@ int BPF_PROG(block_rq_insert)
 		return trace_rq_start((void *)ctx[1], true);
 }
 
+SEC("raw_tp/block_rq_insert")
+int BPF_PROG(block_rq_insert_raw)
+{
+	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
+		return 0;
+
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 11, 0))
+		return trace_rq_start((void *)ctx[0], true);
+	else
+		return trace_rq_start((void *)ctx[1], true);
+}
+
 SEC("tp_btf/block_rq_issue")
 int BPF_PROG(block_rq_issue)
 {
@@ -133,9 +154,20 @@ int BPF_PROG(block_rq_issue)
 		return trace_rq_start((void *)ctx[1], false);
 }
 
-SEC("tp_btf/block_rq_complete")
-int BPF_PROG(block_rq_complete, struct request *rq, int error,
-	     unsigned int nr_bytes)
+SEC("raw_tp/block_rq_issue")
+int BPF_PROG(block_rq_issue_raw)
+{
+	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
+		return 0;
+
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 11, 0))
+		return trace_rq_start((void *)ctx[0], false);
+	else
+		return trace_rq_start((void *)ctx[1], false);
+}
+
+int probe_block_rq_complete(void *ctx, struct request *rq, int error,
+			    unsigned int nr_bytes)
 {
 	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
 		return 0;
@@ -182,6 +214,20 @@ cleanup:
 	bpf_map_delete_elem(&start, &rq);
 	bpf_map_delete_elem(&infobyreq, &rq);
 	return 0;
+}
+
+SEC("tp_btf/block_rq_complete")
+int BPF_PROG(block_rq_complete, struct request *rq, int error,
+	     unsigned int nr_bytes)
+{
+	return probe_block_rq_complete(ctx, rq, error, nr_bytes);
+}
+
+SEC("raw_tp/block_rq_complete")
+int BPF_PROG(block_rq_complete_raw, struct request *rq, int error,
+	     unsigned int nr_bytes)
+{
+	return probe_block_rq_complete(ctx, rq, error, nr_bytes);
 }
 
 char LICENSE[] SEC("license") = "GPL";
