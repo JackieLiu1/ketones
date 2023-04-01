@@ -56,9 +56,8 @@ static bool allow_record(struct task_struct *task)
 	return true;
 }
 
-SEC("tp_btf/sched_switch")
-int BPF_PROG(sched_switch_btf, bool preempt, struct task_struct *prev,
-	     struct task_struct *next)
+static __always_inline int probe_sched_switch(void *ctx, bool preempt, struct task_struct *prev,
+					      struct task_struct *next)
 {
 	struct internal_key *i_keyp, i_key;
 	offcpu_val_t *valp, val;
@@ -107,6 +106,20 @@ cleanup:
 	bpf_map_delete_elem(&start, &pid);
 
 	return 0;
+}
+
+SEC("tp_btf/sched_switch")
+int BPF_PROG(sched_switch_btf, bool preempt, struct task_struct *prev,
+	     struct task_struct *next)
+{
+	return probe_sched_switch(ctx, preempt, prev, next);
+}
+
+SEC("raw_tp/sched_switch")
+int BPF_PROG(sched_switch_raw, bool preempt, struct task_struct *prev,
+	     struct task_struct *next)
+{
+	return probe_sched_switch(ctx, preempt, prev, next);
 }
 
 char LICENSE[] SEC("license") = "GPL";
