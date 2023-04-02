@@ -43,7 +43,7 @@ int BPF_PROG(cpu_frequency, unsigned int state, unsigned int cpu_id)
 	return probe_cpu_frequency(state, cpu_id);
 }
 
-SEC("raw_btf/cpu_frequency_raw")
+SEC("raw_tp/cpu_frequency_raw")
 int BPF_PROG(cpu_frequency_raw, unsigned int state, unsigned int cpu_id)
 {
 	return probe_cpu_frequency(state, cpu_id);
