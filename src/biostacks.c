@@ -167,12 +167,28 @@ int main(int argc, char *argv[])
 					       "blk_account_io_start");
 		bpf_program__set_attach_target(obj->progs.blk_account_io_done, 0,
 					       "blk_account_io_done");
-	} else {
+		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_start, false);
+		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_done, false);
+	} else if (fentry_can_attach("____blk_account_io_start", NULL)) {
 		bpf_program__set_attach_target(obj->progs.blk_account_io_start, 0,
 					       "__blk_account_io_start");
 		bpf_program__set_attach_target(obj->progs.blk_account_io_done, 0,
 					       "__blk_account_io_done");
+		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_start, false);
+		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_done, false);
+	} else {
+		bpf_program__set_autoload(obj->progs.blk_account_io_start, false);
+		bpf_program__set_autoload(obj->progs.blk_account_io_done, false);
 	}
+
+	ksyms = ksyms__load();
+	if (!ksyms) {
+		warning("Failed to load kallsyms\n");
+		goto cleanup;
+	}
+
+	if (!ksyms__get_symbol(ksyms, "blk_account_io_merge_bio"))
+		bpf_program__set_autoload(obj->progs.blk_account_io_merge_bio, false);
 
 	err = biostacks_bpf__load(obj);
 	if (err) {
@@ -180,34 +196,9 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	obj->links.blk_account_io_start = bpf_program__attach(obj->progs.blk_account_io_start);
-	if (!obj->links.blk_account_io_start) {
-		err = -errno;
-		warning("Failed to attach blk_account_io_start: %s\n", strerror(-err));
-		goto cleanup;
-	}
-	ksyms = ksyms__load();
-	if (!ksyms) {
-		warning("Failed to load kallsyms\n");
-		goto cleanup;
-	}
-
-	if (ksyms__get_symbol(ksyms, "blk_account_io_merge_bio")) {
-		obj->links.blk_account_io_merge_bio =
-			bpf_program__attach(obj->progs.blk_account_io_merge_bio);
-		if (!obj->links.blk_account_io_merge_bio) {
-			err = -errno;
-			warning("Failed to attach blk_account_io_merge_bio: %s\n",
-				strerror(-err));
-			goto cleanup;
-		}
-	}
-
-	obj->links.blk_account_io_done = bpf_program__attach(obj->progs.blk_account_io_done);
-	if (!obj->links.blk_account_io_done) {
-		err = -errno;
-		warning("Failed to attach blk_account_io_done: %s\n",
-			strerror(-err));
+	err = biostacks_bpf__attach(obj);
+	if (err) {
+		warning("Failed to attach BPF programs: %d\n", err);
 		goto cleanup;
 	}
 
