@@ -24,7 +24,7 @@ bpf_map_lookup_or_try_init(void *map, const void *key, const void *init)
 }
 
 static __always_inline void *
-bpf_map_lookup_and_delete(void *map, const void *key)
+bpf_map_lookup_and_delete_elem(void *map, const void *key)
 {
 	void *val;
 

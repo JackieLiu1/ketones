@@ -427,7 +427,7 @@ int BPF_KRETPROBE(kprobe_mutex_lock_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -450,7 +450,7 @@ int BPF_KRETPROBE(kprobe_mutex_trylock_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -477,7 +477,7 @@ int BPF_KRETPROBE(kprobe_mutex_lock_interruptible_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -504,7 +504,7 @@ int BPF_KRETPROBE(kprobe_mutex_lock_killable_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -538,7 +538,7 @@ int BPF_KRETPROBE(kprobe_down_read_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -561,7 +561,7 @@ int BPF_KRETPROBE(kprobe_down_read_trylock_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -588,7 +588,7 @@ int BPF_KRETPROBE(kprobe_down_read_interruptible_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -615,7 +615,7 @@ int BPF_KRETPROBE(kprobe_down_read_killable_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -649,7 +649,7 @@ int BPF_KRETPROBE(kprobe_down_write_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -672,7 +672,7 @@ int BPF_KRETPROBE(kprobe_down_write_trylock_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 
@@ -699,7 +699,7 @@ int BPF_KRETPROBE(kprobe_down_write_killable_exit, long ret)
 	u32 tid = bpf_get_current_pid_tgid();
 	void **lock;
 
-	lock = bpf_map_lookup_and_delete(&locks, &tid);
+	lock = bpf_map_lookup_and_delete_elem(&locks, &tid);
 	if (!lock)
 		return 0;
 

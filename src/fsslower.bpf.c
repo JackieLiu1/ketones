@@ -67,7 +67,7 @@ static int probe_exit(void *ctx, enum fs_file_op op, ssize_t size)
 	if (target_pid && target_pid != pid)
 		return 0;
 
-	datap = bpf_map_lookup_and_delete(&starts, &tid);
+	datap = bpf_map_lookup_and_delete_elem(&starts, &tid);
 	if (!datap)
 		return 0;
 
