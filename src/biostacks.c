@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 					       "blk_account_io_done");
 		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_start, false);
 		bpf_program__set_autoload(obj->progs.kprobe_blk_account_io_done, false);
-	} else if (fentry_can_attach("____blk_account_io_start", NULL)) {
+	} else if (fentry_can_attach("__blk_account_io_start", NULL)) {
 		bpf_program__set_attach_target(obj->progs.blk_account_io_start, 0,
 					       "__blk_account_io_start");
 		bpf_program__set_attach_target(obj->progs.blk_account_io_done, 0,
