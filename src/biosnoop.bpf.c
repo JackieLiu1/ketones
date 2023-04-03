@@ -166,8 +166,9 @@ int BPF_PROG(block_rq_issue_raw)
 		return trace_rq_start((void *)ctx[1], false);
 }
 
-int probe_block_rq_complete(void *ctx, struct request *rq, int error,
-			    unsigned int nr_bytes)
+static __always_inline int probe_block_rq_complete(void *ctx, struct request *rq,
+						   int error,
+						   unsigned int nr_bytes)
 {
 	if (filter_memcg && !bpf_current_task_under_cgroup(&cgroup_map, 0))
 		return 0;
