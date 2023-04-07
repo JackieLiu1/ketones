@@ -40,6 +40,7 @@ APPS += gethostlatency
 APPS += hardirqs
 APPS += klockstat
 APPS += ksnoop
+APPS += llcstat
 APPS += numamove
 APPS += numasched
 APPS += offcputime
