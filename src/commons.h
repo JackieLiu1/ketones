@@ -33,6 +33,8 @@
 	(void) (&__min1 == &__min2);		\
 	__min1 > __min2 ? __min2 : __min1; })
 
+#define __maybe_unused __attribute__((unused))
+
 static inline bool bpf_is_root()
 {
 	if (getuid()) {
@@ -70,6 +72,21 @@ static inline double time_since_start(struct timespec start_time)
 	}
 
 	return sec + (double)nsec / NSEC_PER_SEC;
+}
+
+static inline __maybe_unused
+long argp_parse_long(int key, const char *arg, struct argp_state *state)
+{
+	long temp;
+
+	errno = 0;
+	temp = strtol(arg, NULL, 10);
+	if (errno || temp <= 0) {
+		warning("Error arg: %c : %s\n", (char)key, arg);
+		argp_usage(state);
+	}
+
+	return temp;
 }
 
 #endif
