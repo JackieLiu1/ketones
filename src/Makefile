@@ -41,6 +41,7 @@ APPS += hardirqs
 APPS += klockstat
 APPS += ksnoop
 APPS += llcstat
+APPS += mdflush
 APPS += numamove
 APPS += numasched
 APPS += offcputime
