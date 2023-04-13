@@ -964,6 +964,8 @@ int main(int argc, char *argv[])
 			return do_version(argc, argv);
 		case 'p':
 			filter_pid = atoi(optarg);
+			if (!do_process_running(filter_pid))
+				usage();
 			break;
 		case 'P':
 			pages = atoi(optarg);

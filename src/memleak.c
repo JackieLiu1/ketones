@@ -164,7 +164,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 
 	switch (key) {
 	case 'p':
-		env.pid = argp_parse_long(key, arg, state);
+		env.pid = argp_parse_pid(key, arg, state);
 		break;
 	case 't':
 		env.trace_all = true;

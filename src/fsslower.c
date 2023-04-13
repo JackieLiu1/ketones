@@ -124,12 +124,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		}
 		break;
 	case 'p':
-		errno = 0;
-		target_pid = strtol(arg, NULL, 10);
-		if (errno || target_pid <= 0) {
-			warning("Invalid PID: %s\n", arg);
-			argp_usage(state);
-		}
+		target_pid = argp_parse_pid(key, arg, state);
 		break;
 	case 'h':
 		argp_state_help(state, stderr, ARGP_HELP_STD_HELP);

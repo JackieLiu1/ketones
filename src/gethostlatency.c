@@ -43,12 +43,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		env.verbose = true;
 		break;
 	case 'p':
-		errno = 0;
-		env.pid = strtol(arg, NULL, 10);
-		if (errno || env.pid < 0) {
-			warning("Invalid PID: %s\n", arg);
-			argp_usage(state);
-		}
+		env.pid = argp_parse_pid(key, arg, state);
 		break;
 	case 'l':
 		if (!arg)

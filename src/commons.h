@@ -89,4 +89,25 @@ long argp_parse_long(int key, const char *arg, struct argp_state *state)
 	return temp;
 }
 
+static inline bool do_process_running(int pid)
+{
+	bool ret = kill(pid, 0);
+
+	if (ret)
+		warning("PID %d is not running.\n", pid);
+
+	return !ret;
+}
+
+static inline __maybe_unused
+long argp_parse_pid(int key, const char *arg, struct argp_state *state)
+{
+	long pid = argp_parse_long(key, arg, state);
+
+	if (!do_process_running(pid))
+		argp_usage(state);
+
+	return pid;
+}
+
 #endif

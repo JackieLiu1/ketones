@@ -67,12 +67,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		argument->cg = true;
 		break;
 	case 'p':
-		errno = 0;
-		argument->target_pid = strtol(arg, NULL, 10);
-		if (errno || argument->target_pid <= 0) {
-			warning("Invalid PID: %s\n", arg);
-			argp_usage(state);
-		}
+		argument->target_pid = argp_parse_pid(key, arg, state);
 		break;
 	default:
 		return ARGP_ERR_UNKNOWN;

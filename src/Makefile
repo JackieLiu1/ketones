@@ -29,6 +29,7 @@ CFLAGS  += -DUSE_BLAZESYM=1
 LDFLAGS += $(OUTPUT)/libblazesym.a -lrt -lpthread -ldl
 endif
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
+COMMON_HEADERS := commons.h
 
 BZ_APPS += memleak
 
@@ -165,7 +166,7 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
 # Build user-space code
 $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 
-$(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) | $(OUTPUT)
+$(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) $(COMMON_HEADERS) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 

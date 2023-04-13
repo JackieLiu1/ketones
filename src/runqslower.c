@@ -56,13 +56,7 @@ static error_t parse_args(int key, char *arg, struct argp_state *state)
 		env.previous = true;
 		break;
 	case 'p':
-		errno = 0;
-		pid = strtol(arg, NULL, 10);
-		if (errno || pid <= 0) {
-			warning("Invalid PID: %s\n", arg);
-			argp_usage(state);
-		}
-		env.pid = pid;
+		env.pid = argp_parse_pid(key, arg, state);
 		break;
 	case 't':
 		errno = 0;
