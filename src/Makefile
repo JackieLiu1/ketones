@@ -58,6 +58,10 @@ COMMON_LIBS_OBJ += $(OUTPUT)/btf_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/map_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/compat.o
 
+FSDIST_ALIASES	 := btrfsdist ext4dist nfsdist xfsdist
+FSSLOWER_ALIASES := btrfsslower ext4slower nfsslower xfsslower
+APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES)
+
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some
 # architecture-specific dirs will be "missing" on some architectures/distros -
@@ -91,12 +95,12 @@ $(call allow-override,CC,$(CROSS_COMPILE)cc)
 $(call allow-override,LD,$(CROSS_COMPILE)ld)
 
 .PHONY: all
-all: $(APPS)
+all: $(APPS) $(APP_ALIASES)
 
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
+	$(Q)rm -rf $(OUTPUT) $(APPS) $(APP_ALIASES)
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
@@ -139,6 +143,14 @@ numasched numamove: ALL_LDFLAGS += -lnuma
 $(APPS): %: $(OUTPUT)/%.o $(COMMON_LIBS_OBJ) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
+
+$(FSSLOWER_ALIASES): fsslower
+	$(call msg,SYMLINK,$@)
+	$(Q)ln -f -s $^ $@
+
+$(FSDIST_ALIASES): fsdist
+	$(call msg,SYMLINK,$@)
+	$(Q)ln -f -s $^ $@
 
 # delete failed targets
 .DELETE_ON_ERROR:
