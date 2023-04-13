@@ -8,13 +8,29 @@ BPFTOOL_SRC := $(abspath ../bpftool/src)
 LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
 BPFTOOL_OUTPUT ?= $(abspath $(OUTPUT)bpftool)
 BPFTOOL ?= $(BPFTOOL_OUTPUT)/bpftool
+LIBBLAZESYM_SRC := $(abspath ../blazesym/target/release/libblazesym.a)
 
 ARCH ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
 VMLINUX := ../vmlinux/$(ARCH)/vmlinux.h
 
+ifeq ($(ARCH),x86)
+CARGO ?= $(shell which cargo)
+ifeq ($(strip $(CARGO)),)
+USE_BLAZESYM ?= 0
+else
+USE_BLAZESYM ?= 1
+endif
+endif
+
 INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX))
 CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
+ifeq ($(USE_BLAZESYM),1)
+CFLAGS  += -DUSE_BLAZESYM=1
+LDFLAGS += $(OUTPUT)/libblazesym.a -lrt -lpthread -ldl
+endif
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
+
+BZ_APPS += memleak
 
 APPS += bashreadline
 APPS += bindsnoop
@@ -41,7 +57,6 @@ APPS += hardirqs
 APPS += klockstat
 APPS += ksnoop
 APPS += llcstat
-APPS += memleak
 APPS += mdflush
 APPS += numamove
 APPS += numasched
@@ -51,12 +66,18 @@ APPS += runqslower
 APPS += runqueue-latency
 APPS += softirqs
 APPS += wakeuptime
+APPS += $(BZ_APPS)
 
 COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/uprobe_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/btf_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/map_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/compat.o
+
+ifeq ($(USE_BLAZESYM),1)
+COMMON_LIBS_OBJ += $(OUTPUT)/libblazesym.a
+COMMON_LIBS_OBJ += $(OUTPUT)/blazesym.h
+endif
 
 FSDIST_ALIASES	 := btrfsdist ext4dist nfsdist xfsdist
 FSSLOWER_ALIASES := btrfsslower ext4slower nfsslower xfsslower
@@ -102,6 +123,17 @@ clean:
 	$(call msg,CLEAN)
 	$(Q)rm -rf $(OUTPUT) $(APPS) $(APP_ALIASES)
 
+$(LIBBLAZESYM_SRC)::
+	$(Q)cd ../blazesym && cargo build --quiet --release
+
+$(OUTPUT)/libblazesym.a: $(LIBBLAZESYM_SRC) | $(OUTPUT)
+	$(call msg,LIB,$@)
+	$(Q)cp $(LIBBLAZESYM_SRC) $@
+
+$(OUTPUT)/blazesym.h: $(LIBBLAZESYM_SRC) | $(OUTPUT)
+	$(call msg,INC,$@)
+	$(Q)cp ../blazesym/include/blazesym.h $@
+
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@
@@ -143,6 +175,10 @@ numasched numamove: ALL_LDFLAGS += -lnuma
 $(APPS): %: $(OUTPUT)/%.o $(COMMON_LIBS_OBJ) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
+
+ifeq ($(USE_BLAZESYM),1)
+$(patsubst %,$(OUTPUT)/%.o,$(BZ_APPS)): $(OUTPUT)/blazesym.h
+endif
 
 $(FSSLOWER_ALIASES): fsslower
 	$(call msg,SYMLINK,$@)
