@@ -59,6 +59,7 @@ APPS += klockstat
 APPS += ksnoop
 APPS += llcstat
 APPS += mdflush
+APPS += mountsnoop
 APPS += numamove
 APPS += numasched
 APPS += offcputime
