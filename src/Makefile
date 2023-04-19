@@ -63,6 +63,7 @@ APPS += mountsnoop
 APPS += numamove
 APPS += numasched
 APPS += offcputime
+APPS += oomkill
 APPS += runqlen
 APPS += runqslower
 APPS += runqueue-latency
