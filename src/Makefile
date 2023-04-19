@@ -32,6 +32,7 @@ ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
 COMMON_HEADERS := commons.h
 
 BZ_APPS += memleak
+BZ_APPS += opensnoop
 
 APPS += bashreadline
 APPS += bindsnoop
