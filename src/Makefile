@@ -65,6 +65,7 @@ APPS += numamove
 APPS += numasched
 APPS += offcputime
 APPS += oomkill
+APPS += readahead
 APPS += runqlen
 APPS += runqslower
 APPS += runqueue-latency
