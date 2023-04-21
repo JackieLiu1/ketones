@@ -69,6 +69,7 @@ APPS += readahead
 APPS += runqlen
 APPS += runqslower
 APPS += runqueue-latency
+APPS += sigsnoop
 APPS += softirqs
 APPS += wakeuptime
 APPS += $(BZ_APPS)
@@ -86,7 +87,8 @@ endif
 
 FSDIST_ALIASES	 := btrfsdist ext4dist nfsdist xfsdist
 FSSLOWER_ALIASES := btrfsslower ext4slower nfsslower xfsslower
-APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES)
+SIGSNOOP_ALIAS := killsnoop
+APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES) $(SIGSNOOP_ALIAS)
 
 # Get Clang's default includes on this system. We'll explicitly add these dirs
 # to the includes list when compiling with `-target bpf` because otherwise some
@@ -190,6 +192,10 @@ $(FSSLOWER_ALIASES): fsslower
 	$(Q)ln -f -s $^ $@
 
 $(FSDIST_ALIASES): fsdist
+	$(call msg,SYMLINK,$@)
+	$(Q)ln -f -s $^ $@
+
+$(SIGSNOOP_ALIAS): sigsnoop
 	$(call msg,SYMLINK,$@)
 	$(Q)ln -f -s $^ $@
 

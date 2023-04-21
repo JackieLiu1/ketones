@@ -6,14 +6,6 @@
 #include "trace_helpers.h"
 #include "compat.h"
 
-/* https://www.gnu.org/software/gnulib/manual/html_node/strerrorname_005fnp.html */
-#if !defined(__GLIBC__) || __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 32)
-const char *strerrorname_np(int errnum)
-{
-	return NULL;
-}
-#endif
-
 static volatile bool exiting = false;
 
 static pid_t target_pid = 0;
@@ -133,25 +125,6 @@ static const char *strflags(__u64 flags)
 		strcat(str, flag_names[i]);
 	}
 	return str;
-}
-
-static const char *strerrno(int errnum)
-{
-	const char *errstr;
-	static char ret[32] = {};
-
-	if (!errnum)
-		return "0";
-
-	ret[0] = 0;
-	errstr = strerrorname_np(-errnum);
-	if (!errstr) {
-		snprintf(ret, sizeof(ret), "%d", errnum);
-		return ret;
-	}
-
-	snprintf(ret, sizeof(ret), "-%s", errstr);
-	return ret;
 }
 
 static const char *gen_call(const struct event *e)
