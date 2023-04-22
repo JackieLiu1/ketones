@@ -117,8 +117,7 @@ static int handle_switch(bool preempt, struct task_struct *prev, struct task_str
 		goto cleanup;
 
 	if (!histp->comm[0])
-		bpf_probe_read_kernel_str(&histp->comm, sizeof(histp->comm),
-					  next->comm);
+		BPF_CORE_READ_STR_INTO(&histp->comm, next, comm);
 	if (target_ms)
 		delta /= 1000000U;
 	else

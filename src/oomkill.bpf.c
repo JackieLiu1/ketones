@@ -19,7 +19,7 @@ int BPF_KPROBE(oom_kill_process, struct oom_control *oc, const char *message)
 	data->tpid = BPF_CORE_READ(oc, chosen, tgid);
 	data->pages = BPF_CORE_READ(oc, totalpages);
 	bpf_get_current_comm(&data->fcomm, sizeof(data->fcomm));
-	bpf_probe_read_kernel(&data->tcomm, sizeof(data->tcomm), BPF_CORE_READ(oc, chosen, comm));
+	BPF_CORE_READ_STR_INTO(&data->tcomm, oc, chosen, comm);
 
 	submit_buf(ctx, data, sizeof(*data));
 	return 0;

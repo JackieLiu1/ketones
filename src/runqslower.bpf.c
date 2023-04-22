@@ -74,8 +74,8 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	event.pid = pid;
 	event.prev_pid = BPF_CORE_READ(prev, pid);
 	event.delta_us = delta_us;
-	bpf_probe_read_kernel_str(&event.task, sizeof(event.task), next->comm);
-	bpf_probe_read_kernel_str(&event.prev_task, sizeof(event.prev_task), prev->comm);
+	BPF_CORE_READ_STR_INTO(&event.task, next, comm);
+	BPF_CORE_READ_STR_INTO(&event.prev_task, prev, comm);
 
 	/* output */
 	bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU,

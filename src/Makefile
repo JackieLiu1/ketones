@@ -138,7 +138,7 @@ clean:
 	$(Q)rm -rf $(OUTPUT) $(APPS) $(APP_ALIASES)
 
 $(LIBBLAZESYM_SRC)::
-	$(Q)cd ../blazesym && cargo build --quiet --release
+	$(Q)cd ../blazesym && cargo build --release
 
 $(OUTPUT)/libblazesym.a: $(LIBBLAZESYM_SRC) | $(OUTPUT)
 	$(call msg,LIB,$@)
