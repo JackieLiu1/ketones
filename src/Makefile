@@ -73,6 +73,7 @@ APPS += sigsnoop
 APPS += slabratetop
 APPS += softirqs
 APPS += solisten
+APPS += statsnoop
 APPS += wakeuptime
 APPS += $(BZ_APPS)
 
