@@ -72,6 +72,7 @@ APPS += runqueue-latency
 APPS += sigsnoop
 APPS += slabratetop
 APPS += softirqs
+APPS += solisten
 APPS += wakeuptime
 APPS += $(BZ_APPS)
 
