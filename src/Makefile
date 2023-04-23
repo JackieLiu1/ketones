@@ -70,6 +70,7 @@ APPS += runqlen
 APPS += runqslower
 APPS += runqueue-latency
 APPS += sigsnoop
+APPS += slabratetop
 APPS += softirqs
 APPS += wakeuptime
 APPS += $(BZ_APPS)

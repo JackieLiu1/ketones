@@ -79,6 +79,11 @@ long argp_parse_long(int key, const char *arg, struct argp_state *state)
 {
 	long temp;
 
+	if (!arg) {
+		warning("Arg is NULL\n");
+		argp_usage(state);
+	}
+
 	errno = 0;
 	temp = strtol(arg, NULL, 10);
 	if (errno || temp <= 0) {
