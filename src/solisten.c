@@ -152,16 +152,16 @@ int main(int argc, char *argv[])
 		bpf_program__set_autoload(obj->progs.inet_listen_fexit, false);
 	}
 
-	err = solisten_bpf__load(obj);
-	if (err) {
-		warning("Failed to load BPF object: %d\n", err);
-		goto cleanup;
-	}
-
 	buf = bpf_buffer__new(obj->maps.events, obj->maps.heap);
 	if (!buf) {
 		warning("Failed to create ring/perf buffer\n");
 		err = -errno;
+		goto cleanup;
+	}
+
+	err = solisten_bpf__load(obj);
+	if (err) {
+		warning("Failed to load BPF object: %d\n", err);
 		goto cleanup;
 	}
 

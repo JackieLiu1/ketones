@@ -178,6 +178,13 @@ int main(int argc, char *argv[])
 		bpf_program__set_autoload(obj->progs.fentry_tcp_rcv_state_process, false);
 	}
 
+	buf = bpf_buffer__new(obj->maps.events, obj->maps.heap);
+	if (!buf) {
+		warning("Failed to create ring/perf buffer\n");
+		err = -errno;
+		goto cleanup;
+	}
+
 	err = tcpconnlat_bpf__load(obj);
 	if (err) {
 		warning("Failed to load BPF object: %d\n", err);
@@ -188,13 +195,6 @@ int main(int argc, char *argv[])
 	err = tcpconnlat_bpf__attach(obj);
 	if (err) {
 		warning("Failed to attach BPF programs: %d\n", err);
-		goto cleanup;
-	}
-
-	buf = bpf_buffer__new(obj->maps.events, obj->maps.heap);
-	if (!buf) {
-		warning("Failed to create ring/perf buffer\n");
-		err = -errno;
 		goto cleanup;
 	}
 

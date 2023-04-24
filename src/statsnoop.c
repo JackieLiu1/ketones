@@ -156,6 +156,13 @@ int main(int argc, char *argv[])
 		bpf_program__set_autoload(obj->progs.handle_newlstat_return, false);
 	}
 
+	buf = bpf_buffer__new(obj->maps.events, obj->maps.heap);
+	if (!buf) {
+		err = -errno;
+		warning("Failed to create ring/perf buffer\n");
+		goto cleanup;
+	}
+
 	err = statsnoop_bpf__load(obj);
 	if (err) {
 		warning("Failed to load BPF object: %d\n", err);
@@ -166,13 +173,6 @@ int main(int argc, char *argv[])
 	err = statsnoop_bpf__attach(obj);
 	if (err) {
 		warning("Failed to attach BPF programs: %d\n", err);
-		goto cleanup;
-	}
-
-	buf = bpf_buffer__new(obj->maps.events, obj->maps.heap);
-	if (!buf) {
-		err = -errno;
-		warning("Failed to create ring/perf buffer\n");
 		goto cleanup;
 	}
 
