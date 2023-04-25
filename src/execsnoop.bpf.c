@@ -35,8 +35,9 @@ struct {
 	__uint(value_size, sizeof(u32));
 } events SEC(".maps");
 
-static inline int syscall_enter_execve(const char *filename, const char *const *argv,
-				       const char *const *env)
+static __always_inline int syscall_enter_execve(const char *filename,
+						const char *const *argv,
+						const char *const *env)
 {
 	uid_t uid;
 	pid_t pid, tgid;
@@ -67,7 +68,7 @@ static inline int syscall_enter_execve(const char *filename, const char *const *
 	event->args_size = 0;
 
 	/* record filename */
-	ret = bpf_core_read_user_str(event->args, ARGSIZE, filename);
+	ret = bpf_probe_read_user_str(event->args, ARGSIZE, filename);
 	if (ret <= ARGSIZE) {
 		event->args_size += ret;
 	} else {
@@ -86,8 +87,9 @@ static inline int syscall_enter_execve(const char *filename, const char *const *
 		if (event->args_size > LAST_ARG)
 			return 0;
 
-		ret = bpf_core_read_user_str(&event->args[event->args_size],
+		ret = bpf_probe_read_user_str(&event->args[event->args_size],
 					      ARGSIZE, argp);
+
 		if (ret > ARGSIZE)
 			return 0;
 
@@ -96,7 +98,7 @@ static inline int syscall_enter_execve(const char *filename, const char *const *
 	}
 
 	/* try to read one more argument to check if there is one */
-	bpf_core_read_user_str(&argp, sizeof(argp), &argv[max_args]);
+	bpf_probe_read_user_str(&argp, sizeof(argp), &argv[max_args]);
 	if (!argp)
 		return 0;
 
@@ -105,7 +107,7 @@ static inline int syscall_enter_execve(const char *filename, const char *const *
 	return 0;
 }
 
-static inline int syscall_exit_execve(void *ctx, int ret)
+static __always_inline int syscall_exit_execve(void *ctx, int ret)
 {
 	pid_t pid;
 	uid_t uid;
@@ -119,12 +121,12 @@ static inline int syscall_exit_execve(void *ctx, int ret)
 		return 0;
 
 	pid = (pid_t)bpf_get_current_pid_tgid();
-	event = bpf_map_lookup_elem(&execs, &pid);
+	event = bpf_map_lookup_and_delete_elem(&execs, &pid);
 	if (!event)
 		return 0;
 
 	if (ignore_failed && ret < 0)
-		goto cleanup;
+		return 0;
 
 	event->retval = ret;
 	bpf_get_current_comm(&event->comm, sizeof(event->comm));
@@ -134,8 +136,6 @@ static inline int syscall_exit_execve(void *ctx, int ret)
 		bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, event,
 				      EVENT_SIZE(event));
 
-cleanup:
-	bpf_map_delete_elem(&execs, &pid);
 	return 0;
 }
 
@@ -149,10 +149,13 @@ int tracepoint_syscall_enter_execve(struct trace_event_raw_sys_enter *ctx)
 	return syscall_enter_execve(filename, argv, env);
 }
 
-SEC("ksyscall/execve")
-int BPF_KPROBE(kprobe_syscall_enter_execve, const char *filename,
-	       const char *const *argv, const char *const *env)
+SEC("tracepoint/syscalls/sys_enter_execveat")
+int tracepoint_syscall_enter_execveat(struct trace_event_raw_sys_enter *ctx)
 {
+	const char *filename = (const char *)(ctx->args[1]);
+	const char *const *argv = (const char **)(ctx->args[2]);
+	const char *const *env = (const char **)(ctx->args[3]);
+
 	return syscall_enter_execve(filename, argv, env);
 }
 
@@ -162,10 +165,10 @@ int tracepoint_syscall_exit_execve(struct trace_event_raw_sys_exit *ctx)
 	return syscall_exit_execve(ctx, ctx->ret);
 }
 
-SEC("kretsyscall/execve")
-int BPF_KRETPROBE(kprobe_syscall_exit_execve, int ret)
+SEC("tracepoint/syscalls/sys_exit_execveat")
+int tracepoint_syscall_exit_execveat(struct trace_event_raw_sys_exit *ctx)
 {
-	return syscall_exit_execve(ctx, ret);
+	return syscall_exit_execve(ctx, ctx->ret);
 }
 
 char LICENSE[] SEC("license") = "GPL";
