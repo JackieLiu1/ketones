@@ -42,6 +42,12 @@ static int trace_connect(struct sock *sock)
 	return 0;
 }
 
+static int cleanup_sock(struct sock *sock)
+{
+	bpf_map_delete_elem(&start, &sock);
+	return 0;
+}
+
 static int handle_tcp_rcv_state_process(void *ctx, struct sock *sk)
 {
 	struct piddata *piddatap;
@@ -106,6 +112,18 @@ int BPF_KPROBE(tcp_rcv_state_process, struct sock *sk)
 	return handle_tcp_rcv_state_process(ctx, sk);
 }
 
+SEC("kprobe/tcp_v4_destroy_sock")
+int BPF_KPROBE(tcp_v4_destroy_sock, struct sock *sk)
+{
+	return cleanup_sock(sk);
+}
+
+SEC("kprobe/tcp_v6_destroy_sock")
+int BPF_KPROBE(tcp_v6_destroy_sock, struct sock *sk)
+{
+	return cleanup_sock(sk);
+}
+
 SEC("fentry/tcp_v4_connect")
 int BPF_PROG(fentry_tcp_v4_connect, struct sock *sk)
 {
@@ -122,6 +140,18 @@ SEC("fentry/tcp_rcv_state_process")
 int BPF_PROG(fentry_tcp_rcv_state_process, struct sock *sk)
 {
 	return handle_tcp_rcv_state_process(ctx, sk);
+}
+
+SEC("fentry/tcp_v4_destroy_sock")
+int BPF_PROG(fentry_tcp_v4_destroy_sock, struct sock *sk)
+{
+	return cleanup_sock(sk);
+}
+
+SEC("fentry/tcp_v6_destroy_sock")
+int BPF_PROG(fentry_tcp_v6_destroy_sock, struct sock *sk)
+{
+	return cleanup_sock(sk);
 }
 
 char LICENSE[] SEC("license") = "GPL";

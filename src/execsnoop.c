@@ -57,10 +57,10 @@ static const struct argp_option opts[] = {
 	{ "quote", 'q', NULL, 0, "Add quotemarks (\") around arguments" },
 	{ "name", 'n', "NAME", 0, "only print commands matching this name, any arg" },
 	{ "line", 'l', "LINE", 0, "only print commands where arg contains this line" },
-	{ "print-uid", 'U', NULL, 0, "print UID colum" },
+	{ "print-uid", 'U', NULL, 0, "print UID column" },
 	{ "max-args", MAX_ARGS_KEY, "MAX_ARGS", 0,
 		"maximum number of arguments parsed and displayed, default to 20" },
-	{ "verbose", 'v', NULL, 0, "Verbose debug outpot" },
+	{ "verbose", 'v', NULL, 0, "Verbose debug output" },
 	{ "cgroup", 'c', "/sys/fs/cgroup/unified", 0, "Trace process in cgroup path" },
 	{ NULL, 'h', NULL, OPTION_HIDDEN, "Show the full help" },
 	{}
@@ -234,7 +234,7 @@ static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 int main(int argc, char *argv[])
 {
 	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
-	static struct argp argp = {
+	static const struct argp argp = {
 		.options = opts,
 		.parser = parse_arg,
 		.doc = argp_program_doc,
@@ -274,9 +274,11 @@ int main(int argc, char *argv[])
 	if (!tracepoint_exists("syscalls", "sys_enter_execve")) {
 		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_enter_execve, false);
 		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_exit_execve, false);
-	} else {
-		bpf_program__set_autoload(bpf_obj->progs.kprobe_syscall_enter_execve, false);
-		bpf_program__set_autoload(bpf_obj->progs.kprobe_syscall_exit_execve, false);
+	}
+
+	if (!tracepoint_exists("syscalls", "sys_enter_execveat")) {
+		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_enter_execveat, false);
+		bpf_program__set_autoload(bpf_obj->progs.tracepoint_syscall_exit_execveat, false);
 	}
 
 	err = execsnoop_bpf__load(bpf_obj);
