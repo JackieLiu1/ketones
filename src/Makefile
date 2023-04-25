@@ -74,6 +74,7 @@ APPS += slabratetop
 APPS += softirqs
 APPS += solisten
 APPS += statsnoop
+APPS += syscount
 APPS += tcpconnlat
 APPS += wakeuptime
 APPS += $(BZ_APPS)
@@ -83,6 +84,8 @@ COMMON_LIBS_OBJ += $(OUTPUT)/uprobe_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/btf_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/map_helpers.o
 COMMON_LIBS_OBJ += $(OUTPUT)/compat.o
+COMMON_LIBS_OBJ += $(OUTPUT)/syscall_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/errno_helpers.o
 
 ifeq ($(USE_BLAZESYM),1)
 COMMON_LIBS_OBJ += $(OUTPUT)/libblazesym.a
