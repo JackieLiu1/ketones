@@ -76,6 +76,7 @@ APPS += solisten
 APPS += statsnoop
 APPS += syscount
 APPS += tcpconnlat
+APPS += tcptracer
 APPS += vfsstat
 APPS += wakeuptime
 APPS += $(BZ_APPS)
