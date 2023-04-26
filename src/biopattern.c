@@ -118,13 +118,9 @@ static int print_map(struct bpf_map *counters, struct partitions *partitions)
 		if (!total)
 			continue;
 		if (env.timestamp) {
-			time_t t;
-			struct tm *tm;
 			char ts[32];
 
-			time(&t);
-			tm = localtime(&t);
-			strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+			strftime_now(ts, sizeof(ts), "%H:%M:%S");
 			printf("%-9s ", ts);
 		}
 		partition = partitions__get_by_dev(partitions, next_key);

@@ -144,9 +144,7 @@ static const char *gen_call(const struct event *e)
 static int handle_event(void *ctx, void *data, size_t len)
 {
 	const struct event *e = data;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 	const char *indent;
 	static const char *op_name[] = {
 		[MOUNT] = "MOUNT",
@@ -154,9 +152,7 @@ static int handle_event(void *ctx, void *data, size_t len)
 	};
 
 	if (emit_timestamp) {
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S ", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S ");
 		printf("%s", ts);
 		indent = "   ";
 	} else {

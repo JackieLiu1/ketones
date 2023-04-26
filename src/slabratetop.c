@@ -136,13 +136,9 @@ static int print_stat(struct slabratetop_bpf *obj)
 
 	f = fopen("/proc/loadavg", "r");
 	if (f) {
-		time_t t;
 		char ts[32], buf[256];
-		struct tm *tm;
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 		if (fread(buf, 1, sizeof(buf), f))
 			printf("%8s loadavg: %s\n", ts, buf);
 		fclose(f);

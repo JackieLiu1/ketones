@@ -96,13 +96,9 @@ void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct event *e = data;
 	const struct argument *argument = ctx;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 	printf("%-8s %-16s %-6d %9.3f %7lld", ts, e->task, e->pid,
 	       e->delta_ns / 1000000.0, e->nr_reclaimed);

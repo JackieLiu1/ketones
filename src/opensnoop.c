@@ -289,13 +289,9 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	/* print output */
 	sps_cnt = 0;
 	if (env.timestamp) {
-		struct tm *tm;
 		char ts[32];
-		time_t t;
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 		printf("%-8s ", ts);
 		sps_cnt += 9;
 	}

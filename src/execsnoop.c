@@ -199,8 +199,6 @@ static void print_args(const struct event *e, bool quote)
 static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct event *e = data;
-	time_t t;
-	struct tm *tm;
 	char ts[32];
 
 	if (env.name && strstr(e->comm, env.name) == NULL)
@@ -208,9 +206,7 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 	if (env.line && strstr(e->comm, env.line) == NULL)
 		return;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 	if (env.time)
 		printf("%-8s ", ts);

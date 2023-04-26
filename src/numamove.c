@@ -123,15 +123,11 @@ int main(int argc, char *argv[])
 
 	printf("%-10s %19s %18s\n", "TIME", "NUMA_migrations_num", "NUMA_migrateions_ms");
 	while (!exiting) {
-		time_t t;
-		struct tm *tm;
 		char ts[32];
 
 		sleep(1);
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 		if (has_bss){
 			printf("%-10s %18lld %18lld\n", ts,
 			       __atomic_exchange_n(&bpf_obj->bss->num, 0, __ATOMIC_RELAXED),

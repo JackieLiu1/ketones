@@ -63,13 +63,9 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 static void handle_event(void *ctx, int cpu, void *data, __u32 data_size)
 {
 	readline_str_t *e = data;
-	struct tm *tm;
 	char ts[16];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 	printf("%-9s %-7d %s\n", ts, e->pid, e->str);
 }

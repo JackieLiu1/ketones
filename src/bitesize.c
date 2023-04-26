@@ -208,13 +208,9 @@ int main(int argc, char *argv[])
 	while (1) {
 		sleep(argument.interval);
 		if (argument.timestamp) {
-			time_t t;
-			struct tm *tm;
 			char ts[32];
 
-			time(&t);
-			tm = localtime(&t);
-			strftime(ts, sizeof(ts), "%H:%H:%S", tm);
+			strftime_now(ts, sizeof(ts), "%H:%H:%S");
 			printf("%-8s\n", ts);
 		}
 

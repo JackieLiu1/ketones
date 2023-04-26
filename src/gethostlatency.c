@@ -77,13 +77,9 @@ static void sig_handler(int sig)
 static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct event *e = data;
-	struct tm *tm;
 	char ts[16];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 	printf("%-8s %-7d %-16s %-10.3f %-s\n",
 	       ts, e->pid, e->comm, (double)e->time/1000000, e->host);
 }

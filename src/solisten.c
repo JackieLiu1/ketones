@@ -78,13 +78,9 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	const char *prot;
 
 	if (emit_timestamp) {
-		time_t t;
 		char ts[32];
-		struct tm *tm;
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 		printf("%8s ", ts);
 	}
 

@@ -97,13 +97,9 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		return;
 
 	if (env.timestamp) {
-		time_t t;
-		struct tm *tm;
 		char ts[32];
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 		printf("%-8s ", ts);
 	}

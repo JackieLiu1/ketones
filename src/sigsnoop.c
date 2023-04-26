@@ -129,13 +129,9 @@ static void sig_handler(int sig)
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	struct event *e = data;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 	if (signal_name && e->sig < ARRAY_SIZE(sig_name))
 		printf("%-8s %-7u %-16s %-9s %-7u %6s\n",

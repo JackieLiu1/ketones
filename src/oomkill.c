@@ -45,9 +45,7 @@ static int handle_event(void *ctx, void *data, size_t len)
 	FILE *f;
 	char buf[256];
 	int n = 0;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 	struct data_t *e = data;
 
 	f = fopen("/proc/loadavg", "r");
@@ -56,9 +54,7 @@ static int handle_event(void *ctx, void *data, size_t len)
 		n = fread(buf, 1, sizeof(buf), f);
 		fclose(f);
 	}
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 	printf("%s Trigger by PID %d (\"%s\"), OOM kill of PID %d (\"%s\"), %lld pages",
 	       ts, e->fpid, e->fcomm, e->tpid, e->tcomm, e->pages);

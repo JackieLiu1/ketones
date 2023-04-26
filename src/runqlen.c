@@ -280,13 +280,9 @@ int main(int argc, char *argv[])
 		printf("\n");
 
 		if (env.timestamp) {
-			time_t t;
-			struct tm *tm;
 			char ts[32];
 
-			time(&t);
-			tm = localtime(&t);
-			strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+			strftime_now(ts, sizeof(ts), "%H:%M:%S");
 			printf("%-8s\n", ts);
 		}
 

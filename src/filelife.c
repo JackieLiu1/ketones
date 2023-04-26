@@ -63,13 +63,9 @@ static void sig_handler(int sig)
 void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct event *e = data;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 	printf("%-8s %-6d %-16s %-7.2f %s\n",
 		ts, e->tgid, e->task, (double)e->delta_ns / 1e9,
 		e->file);

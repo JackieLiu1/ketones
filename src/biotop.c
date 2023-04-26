@@ -262,14 +262,10 @@ static int print_stat(struct biotop_bpf *obj)
 
 	fp = fopen("/proc/loadavg", "r");
 	if (fp) {
-		time_t t;
-		struct tm *tm;
 		char ts[16], buf[256] = {};
 		int n;
 
-		time(&t);
-		tm = localtime(&t);
-		strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 
 		n = fread(buf, 1, sizeof(buf), fp);
 		if (n)

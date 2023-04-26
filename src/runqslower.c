@@ -103,13 +103,9 @@ static void sig_int(int signo)
 void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
 	const struct runq_event *e = data;
-	struct tm *tm;
 	char ts[32];
-	time_t t;
 
-	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	strftime_now(ts, sizeof(ts), "%H:%M:%S");
 	if (env.previous)
 		printf("%-8s %-16s %-6d %-14llu %-16s %-6d\n", ts, e->task, e->pid, e->delta_us, e->prev_task, e->prev_pid);
 	else
