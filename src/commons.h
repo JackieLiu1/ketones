@@ -75,6 +75,26 @@ static inline double time_since_start(struct timespec start_time)
 }
 
 static inline __maybe_unused
+const char *strftime_now(char *s, size_t max, const char *format)
+{
+	struct tm *tm;
+	time_t t;
+
+	t = time(NULL);
+	tm = localtime(&t);
+	if (!tm) {
+		warning("localtime: %s\n", strerror(errno));
+		return "<failed>";
+	}
+	if (!strftime(s, max, format, tm)) {
+		warning("strftime error\n");
+		return "<failed>";
+	}
+
+	return s;
+}
+
+static inline __maybe_unused
 long argp_parse_long(int key, const char *arg, struct argp_state *state)
 {
 	long temp;
