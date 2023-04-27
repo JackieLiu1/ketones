@@ -76,6 +76,7 @@ APPS += solisten
 APPS += statsnoop
 APPS += syscount
 APPS += tcpconnlat
+APPS += tcpsynbl
 APPS += tcptop
 APPS += tcptracer
 APPS += vfsstat
