@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
 		if (err)
 			break;
 
-		if (exiting || !--count)
+		if (exiting || --count == 0)
 			break;
 	}
 

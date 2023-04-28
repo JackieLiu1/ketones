@@ -178,7 +178,7 @@ static int print_stat(struct tcptop_bpf *obj)
 	int fd = bpf_map__fd(obj->maps.ip_map);
 	bool ipv6_header_printed = false;
 	int rows = 0;
-	int err;
+	int err = 0;
 
 	if (!env.no_summary) {
 		FILE *f = fopen("/proc/loadavg", "r");
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
 		if (err)
 			goto cleanup;
 
-		if (exiting || !--env.count)
+		if (exiting || --env.count == 0)
 			goto cleanup;
 	}
 

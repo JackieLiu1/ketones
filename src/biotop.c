@@ -257,7 +257,7 @@ static int print_stat(struct biotop_bpf *obj)
 	FILE *fp;
 	struct info_t *prev_key = NULL;
 	static struct data_t datas[OUTPUT_ROWS_LIMIT];
-	int err, rows = 0;
+	int err = 0, rows = 0;
 	int fd = bpf_map__fd(obj->maps.counts);
 
 	fp = fopen("/proc/loadavg", "r");

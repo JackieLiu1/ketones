@@ -160,7 +160,7 @@ static int sort_column(const void *obj1, const void *obj2)
 static int print_stat(struct filetop_bpf *obj, struct argument *argument)
 {
 	FILE *f;
-	int err;
+	int err = 0;
 	struct file_id key, *prev_key = NULL;
 	static struct file_stat values[OUTPUT_ROWS_LIMIT];
 	int fd = bpf_map__fd(obj->maps.entries);
