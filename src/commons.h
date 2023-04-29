@@ -1,6 +1,10 @@
 #ifndef __COMMONS_H
 #define __COMMONS_H
 
+#ifndef _GNU_SOURCE
+  #define _GNU_SOURCE
+#endif
+
 #include <argp.h>
 #include <stdio.h>
 #include <fcntl.h>
