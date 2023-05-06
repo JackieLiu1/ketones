@@ -75,6 +75,7 @@ APPS += softirqs
 APPS += solisten
 APPS += statsnoop
 APPS += syscount
+APPS += tcpconnect
 APPS += tcpconnlat
 APPS += tcpsynbl
 APPS += tcptop

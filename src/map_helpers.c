@@ -6,8 +6,6 @@
 
 #include "map_helpers.h"
 
-#define warn(...) fprintf(stderr, __VA_ARGS__)
-
 static bool batch_map_ops = true; /* hope for the best */
 
 static int
