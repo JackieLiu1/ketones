@@ -122,7 +122,6 @@ trace_v4(void *ctx, pid_t pid, struct sock *sk, __u16 sport, __u16 dport)
 	event->af = AF_INET;
 	event->pid = pid;
 	event->uid = bpf_get_current_uid_gid();
-	event->ts_us = bpf_ktime_get_ns() / 1000;
 	BPF_CORE_READ_INTO(&event->saddr_v4, sk, __sk_common.skc_rcv_saddr);
 	BPF_CORE_READ_INTO(&event->daddr_v4, sk, __sk_common.skc_daddr);
 	event->sport = sport;
@@ -144,7 +143,6 @@ trace_v6(void *ctx, pid_t pid, struct sock *sk, __u16 sport, __u16 dport)
 	event->af = AF_INET6;
 	event->pid = pid;
 	event->uid = bpf_get_current_uid_gid();
-	event->ts_us = bpf_ktime_get_ns() / 1000;
 	BPF_CORE_READ_INTO(&event->saddr_v6, sk,
 			   __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
 	BPF_CORE_READ_INTO(&event->daddr_v6, sk,

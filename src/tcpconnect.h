@@ -34,7 +34,6 @@ struct event {
 		__u8 daddr_v6[16];
 	};
 	char task[TASK_COMM_LEN];
-	__u64 ts_us;
 	__u32 af;
 	__u32 pid;
 	__u32 uid;
