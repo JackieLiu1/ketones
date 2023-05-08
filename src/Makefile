@@ -79,6 +79,7 @@ APPS += tcpconnect
 APPS += tcpconnlat
 APPS += tcplife
 APPS += tcprtt
+APPS += tcpstates
 APPS += tcpsynbl
 APPS += tcptop
 APPS += tcptracer
