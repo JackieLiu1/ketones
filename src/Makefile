@@ -78,6 +78,7 @@ APPS += syscount
 APPS += tcpconnect
 APPS += tcpconnlat
 APPS += tcplife
+APPS += tcprtt
 APPS += tcpsynbl
 APPS += tcptop
 APPS += tcptracer
