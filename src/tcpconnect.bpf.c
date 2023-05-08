@@ -9,7 +9,7 @@
 #include "compat.bpf.h"
 #include "maps.bpf.h"
 
-SEC(".rodata") const volatile int filter_ports[MAX_PORTS];
+const volatile int filter_ports[MAX_PORTS] = {};
 const volatile int filter_ports_len = 0;
 const volatile uid_t filter_uid = -1;
 const volatile pid_t filter_pid = 0;

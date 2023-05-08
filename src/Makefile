@@ -56,6 +56,7 @@ APPS += fsslower
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs
+APPS += javagc
 APPS += klockstat
 APPS += ksnoop
 APPS += llcstat
