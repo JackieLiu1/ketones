@@ -60,6 +60,7 @@ APPS += javagc
 APPS += klockstat
 APPS += ksnoop
 APPS += llcstat
+APPS += loads
 APPS += mdflush
 APPS += mountsnoop
 APPS += numamove
