@@ -65,6 +65,7 @@ APPS += llcstat
 APPS += loads
 APPS += mdflush
 APPS += mountsnoop
+APPS += naptime
 APPS += numamove
 APPS += numasched
 APPS += offcputime
