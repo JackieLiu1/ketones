@@ -46,6 +46,7 @@ APPS += cachestat
 APPS += capable
 APPS += cpudist
 APPS += cpufreq
+APPS += dcsnoop
 APPS += drsnoop
 APPS += execsnoop
 APPS += exitsnoop
