@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
-OUTPUT ?= $(abspath .output)/
+OUTPUT ?= $(abspath .output)
 CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
 
 LIBBPF_SRC := $(abspath ../libbpf/src)
 BPFTOOL_SRC := $(abspath ../bpftool/src)
 LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
-BPFTOOL_OUTPUT ?= $(abspath $(OUTPUT)bpftool)
+BPFTOOL_OUTPUT ?= $(abspath $(OUTPUT)/bpftool)
 BPFTOOL ?= $(BPFTOOL_OUTPUT)/bpftool
 LIBBLAZESYM_SRC := $(abspath ../blazesym/target/release/libblazesym.a)
 
@@ -22,14 +22,13 @@ USE_BLAZESYM ?= 1
 endif
 endif
 
-INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX))
+INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I./include
 CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
 ifeq ($(USE_BLAZESYM),1)
 CFLAGS  += -DUSE_BLAZESYM=1
 LDFLAGS += $(OUTPUT)/libblazesym.a -lrt -lpthread -ldl
 endif
 ALL_LDFLAGS := $(LDFLAGS) $(EXTRA_LDFLAGS)
-COMMON_HEADERS := commons.h
 
 BZ_APPS += memleak
 BZ_APPS += opensnoop
@@ -95,13 +94,13 @@ APPS += vfsstat
 APPS += wakeuptime
 APPS += $(BZ_APPS)
 
-COMMON_LIBS_OBJ := $(OUTPUT)/trace_helpers.o
-COMMON_LIBS_OBJ += $(OUTPUT)/uprobe_helpers.o
-COMMON_LIBS_OBJ += $(OUTPUT)/btf_helpers.o
-COMMON_LIBS_OBJ += $(OUTPUT)/map_helpers.o
-COMMON_LIBS_OBJ += $(OUTPUT)/compat.o
-COMMON_LIBS_OBJ += $(OUTPUT)/syscall_helpers.o
-COMMON_LIBS_OBJ += $(OUTPUT)/errno_helpers.o
+COMMON_LIBS_OBJ := $(OUTPUT)/libs/trace_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/uprobe_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/btf_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/map_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/compat.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/syscall_helpers.o
+COMMON_LIBS_OBJ += $(OUTPUT)/libs/errno_helpers.o
 
 ifeq ($(USE_BLAZESYM),1)
 COMMON_LIBS_OBJ += $(OUTPUT)/libblazesym.a
@@ -164,7 +163,7 @@ $(OUTPUT)/blazesym.h: $(LIBBLAZESYM_SRC) | $(OUTPUT)
 	$(call msg,INC,$@)
 	$(Q)cp ../blazesym/include/blazesym.h $@
 
-$(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
+$(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT) $(OUTPUT)/libs:
 	$(call msg,MKDIR,$@)
 	$(Q)mkdir -p $@
 
@@ -195,16 +194,20 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
 # Build user-space code
 $(patsubst %,$(OUTPUT)/%.o,$(APPS)): %.o: %.skel.h
 
-$(OUTPUT)/%.o: %.c $(wildcard %.h) $(LIBBPF_OBJ) $(COMMON_HEADERS) | $(OUTPUT)
+$(OUTPUT)/libs/%.o: libs/%.c $(LIBBPF_OBJ) | $(OUTPUT)/libs
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
-numasched numamove: ALL_LDFLAGS += -lnuma
+$(OUTPUT)/%.o: %.c $(LIBBPF_OBJ) | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
 # Build application binary
 $(APPS): %: $(OUTPUT)/%.o $(COMMON_LIBS_OBJ) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
+
+numasched numamove: ALL_LDFLAGS += -lnuma
 
 ifeq ($(USE_BLAZESYM),1)
 $(patsubst %,$(OUTPUT)/%.o,$(BZ_APPS)): $(OUTPUT)/blazesym.h
