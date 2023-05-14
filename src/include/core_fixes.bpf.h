@@ -133,4 +133,33 @@ static __always_inline bool renamedata_has_old_mnt_userns_field(void)
 	return false;
 }
 
+/**
+ * commit 8cd54c1c8480 ("iov_iter: separate direction from flavour")
+ * Instead of having them mixed in iter->type, use separate ->iter_type
+ * and ->data_source (u8 and bool resp.)
+ * see:
+ *     https://github.com/torvalds/linux/commit/8cd54c1c8480
+ */
+struct iov_iter___x {
+	u8 iter_type;
+} __attribute__((preserve_access_index));
+
+struct iov_iter___o {
+	unsigned int type;
+} __attribute__((preserve_access_index));
+
+static __always_inline bool io_iter_has_iter_type(void)
+{
+	if (bpf_core_field_exists(struct iov_iter___x, iter_type))
+		return true;
+	return false;
+}
+
+static __always_inline int get_iov_iter_type(struct iov_iter *iov_iter)
+{
+	if (io_iter_has_iter_type())
+		return BPF_CORE_READ(iov_iter, iter_type);
+	return BPF_CORE_READ((struct iov_iter___o *)iov_iter, type);
+}
+
 #endif /* __CORE_FIXES_BPF_H */

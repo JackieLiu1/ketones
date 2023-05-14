@@ -91,6 +91,7 @@ APPS += tcpstates
 APPS += tcpsynbl
 APPS += tcptop
 APPS += tcptracer
+APPS += ttysnoop
 APPS += vfsstat
 APPS += wakeuptime
 APPS += $(BZ_APPS)

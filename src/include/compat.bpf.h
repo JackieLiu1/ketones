@@ -42,6 +42,25 @@ static __always_inline void *reserve_buf(__u64 size)
 	return bpf_map_lookup_elem(&heap, &zero);
 }
 
+static __always_inline void *discard_buf(void *buf)
+{
+	static const int zero = 0;
+
+#if __has_builtin(__builtin_preserve_type_info)
+        if (bpf_core_type_exists(struct bpf_ringbuf)) {
+		bpf_ringbuf_discard(buf, 0);
+		return 0;
+	}
+#endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 8, 0)) {
+		bpf_ringbuf_discard(buf, 0);
+		return 0;
+	}
+
+	bpf_map_delete_elem(&heap, &zero);
+	return 0;
+}
+
 static __always_inline long submit_buf(void *ctx, void *buf, __u64 size)
 {
 #if __has_builtin(__builtin_preserve_type_info)
