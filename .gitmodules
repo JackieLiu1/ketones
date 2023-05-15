@@ -1,9 +1,0 @@
-[submodule "libbpf"]
-	path = libbpf
-	url = https://gitee.com/newbeats/libbpf.git
-[submodule "bpftool"]
-	path = bpftool
-	url = https://gitee.com/newbeats/bpftool.git
-[submodule "blazesym"]
-	path = blazesym
-	url = https://gitee.com/newbeats/blazesym.git
