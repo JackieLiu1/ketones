@@ -68,8 +68,7 @@ static int open_and_attach_perf_event(struct bpf_program *prog, struct bpf_link 
 	struct perf_event_attr attr = {
 		.type = PERF_TYPE_SOFTWARE,
 		.config = PERF_COUNT_SW_CPU_CLOCK,
-		.sample_period = env.interval,
-		.freq = 0,
+		.sample_period = env.interval * 500000000,
 	};
 
 	int fd = syscall(__NR_perf_event_open, &attr, -1, 0, -1, 0);
