@@ -142,22 +142,30 @@ static __always_inline bool renamedata_has_old_mnt_userns_field(void)
  */
 struct iov_iter___x {
 	u8 iter_type;
+	void *ubuf;
 } __attribute__((preserve_access_index));
 
 struct iov_iter___o {
 	unsigned int type;
 } __attribute__((preserve_access_index));
 
-static __always_inline bool io_iter_has_iter_type(void)
+static __always_inline bool iov_iter_has_iter_type(void)
 {
 	if (bpf_core_field_exists(struct iov_iter___x, iter_type))
 		return true;
 	return false;
 }
 
+static __always_inline bool iov_iter_has_ubuf(void)
+{
+	if (bpf_core_field_exists(struct iov_iter___x, ubuf))
+		return true;
+	return false;
+}
+
 static __always_inline int get_iov_iter_type(struct iov_iter *iov_iter)
 {
-	if (io_iter_has_iter_type())
+	if (iov_iter_has_iter_type())
 		return BPF_CORE_READ(iov_iter, iter_type);
 	return BPF_CORE_READ((struct iov_iter___o *)iov_iter, type);
 }

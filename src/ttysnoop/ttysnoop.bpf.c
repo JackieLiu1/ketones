@@ -72,7 +72,7 @@ int BPF_KPROBE(kprobe__tty_write)
 		 * Instead of having them mixed in iter->type, use separate ->iter_type
 		 * and ->data_source (u8 and bool resp.)
 		 */
-		if (io_iter_has_iter_type()) {
+		if (iov_iter_has_iter_type()) {
 			if (BPF_CORE_READ(from, iter_type) != ITER_IOVEC &&
 			    BPF_CORE_READ(from, iter_type) != ITER_UBUF)
 				return 0;
@@ -84,9 +84,16 @@ int BPF_KPROBE(kprobe__tty_write)
 				buf = BPF_CORE_READ(from, kvec, iov_base);
 				count = BPF_CORE_READ(from, kvec, iov_len);
 				break;
+			/* commit fcb14cb1bdac ("new iov_iter flavour - ITER_UBUF")
+			 * implement new iov_iter flavour ITER_UBUF
+			 */
 			case ITER_UBUF:
-				buf = BPF_CORE_READ(from, ubuf);
-				count = BPF_CORE_READ(from, count);
+				if (iov_iter_has_ubuf()) {
+					buf = BPF_CORE_READ(from, ubuf);
+					count = BPF_CORE_READ(from, count);
+				} else {
+					return 0;
+				}
 				break;
 			default:
 				return 0;
