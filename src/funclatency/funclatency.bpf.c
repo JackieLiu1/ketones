@@ -27,8 +27,7 @@ struct {
 
 __u32 hists[MAX_SLOTS] = {};
 
-SEC("kprobe/dummy_kprobe")
-int BPF_KPROBE(dummy_kprobe)
+static int entry(void)
 {
 	u64 id = bpf_get_current_pid_tgid();
 	u32 tgid = id >> 32;
@@ -47,8 +46,19 @@ int BPF_KPROBE(dummy_kprobe)
 	return 0;
 }
 
-SEC("kretprobe/dummy_kretprobe")
-int BPF_KRETPROBE(dummy_kretprobe)
+SEC("fentry/dummy_fentry")
+int BPF_PROG(dummy_fentry)
+{
+	return entry();
+}
+
+SEC("kprobe/dummy_kprobe")
+int BPF_KPROBE(dummy_kprobe)
+{
+	return entry();
+}
+
+static int exit(void)
 {
 	u64 *start;
 	u64 nsec = bpf_ktime_get_ns();
@@ -80,6 +90,18 @@ int BPF_KRETPROBE(dummy_kretprobe)
 	__sync_fetch_and_add(&hists[slot], 1);
 
 	return 0;
+}
+
+SEC("fexit/dummy_fexit")
+int BPF_PROG(dummy_fexit)
+{
+	return exit();
+}
+
+SEC("kretprobe/dummy_kretprobe")
+int BPF_KRETPROBE(dummy_kretprobe)
+{
+	return exit();
 }
 
 char LICENSE[] SEC("license") = "GPL";

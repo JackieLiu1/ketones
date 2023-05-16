@@ -16,8 +16,10 @@ static struct env {
 	bool timestamp;
 	char *funcname;
 	bool verbose;
+	bool kprobes;
 	char *cgroupspath;
 	bool cg;
+	bool is_kernel_func;
 } env = {
 	.interval = 99999999,
 	.iterations = 99999999,
@@ -58,6 +60,7 @@ static const struct argp_option opts[] = {
 	{ "duration", 'd', "DURATION", 0, "Duration to trace" },
 	{ "timestamp", 'T', NULL, 0, "Print timestamp" },
 	{ "verbose", 'v', NULL, 0, "Verbose debug output" },
+	{ "kprobes", 'k', NULL, 0, "Use kprobes instead of fentry" },
 	{ NULL, 'h', NULL, OPTION_HIDDEN, "Show the full help" },
 	{}
 };
@@ -75,6 +78,9 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 		break;
 	case 'T':
 		env->timestamp = true;
+		break;
+	case 'k':
+		env->kprobes = true;
 		break;
 	case 'c':
 		env->cgroupspath = arg;
@@ -160,23 +166,53 @@ static const char *unit2str(void)
 	return "bad units";
 }
 
-static int attach_kprobes(struct funclatency_bpf *obj)
+static bool try_fentry(struct funclatency_bpf *obj)
 {
 	long err;
 
+	if (env.kprobes || !env.is_kernel_func ||
+	    !fentry_can_attach(env.funcname, NULL))
+		goto out_no_fentry;
+
+	err = bpf_program__set_attach_target(obj->progs.dummy_fentry, 0,
+					     env.funcname);
+	if (err) {
+		warning("failed to set attach fentry: %s\n", strerror(-err));
+		goto out_no_fentry;
+	}
+
+	err = bpf_program__set_attach_target(obj->progs.dummy_fexit, 0,
+					     env.funcname);
+	if (err) {
+		warning("failed to set attach fexit: %s\n", strerror(-err));
+		goto out_no_fentry;
+	}
+
+	bpf_program__set_autoload(obj->progs.dummy_kprobe, false);
+	bpf_program__set_autoload(obj->progs.dummy_kretprobe, false);
+
+	return true;
+
+out_no_fentry:
+	bpf_program__set_autoload(obj->progs.dummy_fentry, false);
+	bpf_program__set_autoload(obj->progs.dummy_fexit, false);
+
+	return false;
+}
+
+static int attach_kprobes(struct funclatency_bpf *obj)
+{
 	obj->links.dummy_kprobe = bpf_program__attach_kprobe(obj->progs.dummy_kprobe, false,
 							     env.funcname);
 	if (!obj->links.dummy_kprobe) {
-		err = -errno;
-		warning("Failed to attach kprobe: %ld\n", err);
+		warning("Failed to attach kprobe: %d\n", -errno);
 		return -1;
 	}
 
 	obj->links.dummy_kretprobe = bpf_program__attach_kprobe(obj->progs.dummy_kretprobe, true,
 								env.funcname);
 	if (!obj->links.dummy_kretprobe) {
-		err = -errno;
-		warning("Failed to attach kretprobe: %ld\n", err);
+		warning("Failed to attach kretprobe: %d\n", -errno);
 		return -1;
 	}
 
@@ -240,13 +276,6 @@ out_binary:
 	return ret;
 }
 
-static int attach_probes(struct funclatency_bpf *obj)
-{
-	if (strchr(env.funcname, ':'))
-		return attach_uprobes(obj);
-	return attach_kprobes(obj);
-}
-
 static volatile bool exiting = false;
 
 static void sig_hander(int sig)
@@ -269,6 +298,7 @@ int main(int argc, char *argv[])
 	};
 	struct funclatency_bpf *obj;
 	int err, cgfd;
+	bool used_fentry = false;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, &env);
 	if (err)
@@ -276,6 +306,8 @@ int main(int argc, char *argv[])
 
 	if (!bpf_is_root())
 		return 1;
+
+	env.is_kernel_func = !strchr(env.funcname, ':');
 
 	sigaction(SIGINT, &sigact, 0);
 
@@ -296,6 +328,8 @@ int main(int argc, char *argv[])
 	obj->rodata->units = env.units;
 	obj->rodata->target_tgid = env.pid;
 	obj->rodata->filter_memcg = env.cg;
+
+	used_fentry = try_fentry(obj);
 
 	err = funclatency_bpf__load(obj);
 	if (err) {
@@ -324,9 +358,20 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	err = attach_probes(obj);
-	if (err)
+	if (!used_fentry) {
+		if (env.is_kernel_func)
+			err = attach_kprobes(obj);
+		else
+			err = attach_uprobes(obj);
+		if (err)
+			goto cleanup;
+	}
+
+	err = funclatency_bpf__attach(obj);
+	if (err) {
+		warning("Failed to attach BPF programs: %s\n", strerror(-err));
 		goto cleanup;
+	}
 
 	printf("Tracing %s. Hit Ctrl-C to exit\n", env.funcname);
 
