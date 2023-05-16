@@ -51,10 +51,17 @@ static struct env {
 	.kernel_trace = true,
 };
 
+struct allocation_node {
+	uint64_t address;
+	size_t size;
+	struct allocation_node *next;
+};
+
 struct allocation {
 	uint64_t stack_id;
 	size_t size;
 	size_t count;
+	struct allocation_node *allocations;
 };
 
 #define __ATTACH_UPROBE(skel, sym_name, prog_name, is_retprobe)	\
@@ -368,6 +375,15 @@ static int print_stack_frames(struct allocation *allocs, size_t nr_allocs, int s
 
 		printf("%zu bytes in %zu allocations from stack\n", alloc->size, alloc->count);
 
+		if (env.show_allocs) {
+			struct allocation_node *it = alloc->allocations;
+
+			while (!it) {
+				printf("\taddr = %#lx size = %zu\n", it->address, it->size);
+				it = it->next;
+			}
+		}
+
 		if (bpf_map_lookup_elem(stack_traces_fd, &alloc->stack_id, stack)) {
 			if (errno == ENOENT)
 				continue;
@@ -481,12 +497,26 @@ static int print_outstanding_allocs(int allocs_fd, int stack_traces_fd)
 		// increment size with alloc_info.size
 		bool stack_exists = false;
 
-		for (size_t i = 0; i < nr_allocs; i++) {
+		for (size_t i = 0; !stack_exists && i < nr_allocs; i++) {
 			struct allocation *alloc = &allocs[i];
 
 			if (alloc->stack_id == alloc_info.stack_id) {
 				alloc->size += alloc_info.size;
 				alloc->count++;
+
+				if (env.show_allocs) {
+					struct allocation_node *node = malloc(sizeof(struct allocation_node));
+
+					if (!node) {
+						perror("malloc failed");
+						return -errno;
+					}
+					node->address = curr_key;
+					node->size = alloc_info.size;
+					node->next = alloc->allocations;
+					alloc->allocations = node;
+				}
+
 				stack_exists = true;
 				break;
 			}
@@ -497,11 +527,24 @@ static int print_outstanding_allocs(int allocs_fd, int stack_traces_fd)
 
 		// when the stack_id does not exist in the allocs array,
 		// create a new entry in the array
-		const struct allocation alloc = {
+		struct allocation alloc = {
 			.stack_id = alloc_info.stack_id,
 			.size = alloc_info.size,
 			.count = 1,
 		};
+
+		if (env.show_allocs) {
+			struct allocation_node *node = malloc(sizeof(struct allocation_node));
+
+			if (!node) {
+				perror("malloc failed");
+				return -errno;
+			}
+			node->address = curr_key;
+			node->size = alloc_info.size;
+			node->next = NULL;
+			alloc.allocations = node;
+		}
 
 		memcpy(&allocs[nr_allocs], &alloc, sizeof(alloc));
 
@@ -513,12 +556,29 @@ static int print_outstanding_allocs(int allocs_fd, int stack_traces_fd)
 	qsort(allocs, nr_allocs, sizeof(allocs[0]), alloc_size_compare);
 
 	// get min of allocs we stored vs the top N requested stacks
-	nr_allocs = MIN(nr_allocs, env.top_stacks);
-	if (nr_allocs) {
-		printf("[%d:%d:%d] Top %zu stacks with outstanding allocations:\n",
-		       tm->tm_hour, tm->tm_min, tm->tm_sec, nr_allocs);
+	size_t nr_allocs_to_show = MIN(nr_allocs, env.top_stacks);
 
-		print_stack_frames(allocs, nr_allocs, stack_traces_fd);
+	if (nr_allocs_to_show) {
+		printf("[%d:%d:%d] Top %zu stacks with outstanding allocations:\n",
+		       tm->tm_hour, tm->tm_min, tm->tm_sec, nr_allocs_to_show);
+
+		print_stack_frames(allocs, nr_allocs_to_show, stack_traces_fd);
+
+		// Reset allocs list so that we dont accidentaly reuse data the next time we call this function
+		for (size_t i = 0; i < nr_allocs; i++) {
+			allocs[i].stack_id = 0;
+			if (env.show_allocs) {
+				struct allocation_node *it = allocs[i].allocations;
+
+				while (!it) {
+					struct allocation_node *this = it;
+
+					it = it->next;
+					free(this);
+				}
+				allocs[i].allocations = NULL;
+			}
+		}
 	}
 
 	return 0;
