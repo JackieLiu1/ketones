@@ -9,7 +9,7 @@
 
 #define WRITE	1
 
-extern int LINUX_KERNEL_VERSION __kconfig;
+extern __u32 LINUX_KERNEL_VERSION __kconfig;
 
 const volatile int user_data_count = 16;
 const volatile int pts_inode = -1;

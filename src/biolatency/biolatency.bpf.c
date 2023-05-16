@@ -11,7 +11,7 @@
 
 #define MAX_ENTRIES	10240
 
-extern int LINUX_KERNEL_VERSION	__kconfig;
+extern __u32 LINUX_KERNEL_VERSION __kconfig;
 
 const volatile bool filter_memcg = false;
 const volatile bool target_per_disk = false;

@@ -7,6 +7,12 @@
 #include <vmlinux.h>
 #include <bpf/bpf_core_read.h>
 
+extern __u32 LINUX_KERNEL_VERSION __kconfig;
+
+#ifndef __has_builtin		// Optional of course.
+  #define __has_builtin(x) 0	// Compatibility with non-clang compilers.
+#endif
+
 /**
  * commit 2f064a59a1 ("sched: Change task_struct::state") changes
  * the name of task_struct::state to task_struct::__state
@@ -76,10 +82,13 @@ struct trace_event_raw_block_rq_completion___x {
 
 static __always_inline bool has_block_rq_completion()
 {
-#if __has_builtin(__builtin_preserve_enum_value)
+#if __has_builtin(__builtin_preserve_type_info)
 	if (bpf_core_type_exists(struct trace_event_raw_block_rq_completion___x))
 		return true;
 #endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 18, 0))
+		return true;
+
 	return false;
 }
 
@@ -168,6 +177,50 @@ static __always_inline int get_iov_iter_type(struct iov_iter *iov_iter)
 	if (iov_iter_has_iter_type())
 		return BPF_CORE_READ(iov_iter, iter_type);
 	return BPF_CORE_READ((struct iov_iter___o *)iov_iter, type);
+}
+
+/**
+ * commit 3544de8ee6e4("mm, tracing: record slab name for kmem_cache_free()")
+ * replaces `trace_event_raw_kmem_free` with `trace_event_raw_kfree` and adds
+ * `tracepoint_kmem_cache_free` to enhance the information recorded for
+ * `kmem_cache_free`.
+ * see:
+ *     https://github.com/torvalds/linux/commit/3544de8ee6e4
+ */
+struct trace_event_raw_kmem_free___x {
+	const void *ptr;
+} __attribute__((preserve_access_index));
+
+struct trace_event_raw_kfree___x {
+	const void *ptr;
+} __attribute__((preserve_access_index));
+
+struct trace_event_raw_kmem_cache_free___x {
+	const void *ptr;
+} __attribute__((preserve_access_index));
+
+static __always_inline bool has_kfree()
+{
+#if __has_builtin(__builtin_preserve_type_info)
+	if (bpf_core_type_exists(struct trace_event_raw_kfree___x))
+		return true;
+#endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 12, 0))
+		return true;
+
+	return false;
+}
+
+static __always_inline bool has_kmem_cache_free()
+{
+#if __has_builtin(__builtin_preserve_type_info)
+	if (bpf_core_type_exists(struct trace_event_raw_kmem_cache_free___x))
+		return true;
+#endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 12, 0))
+		return true;
+
+	return false;
 }
 
 #endif /* __CORE_FIXES_BPF_H */

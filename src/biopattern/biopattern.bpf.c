@@ -10,7 +10,7 @@
 const volatile bool filter_dev = false;
 const volatile __u32 target_dev = 0;
 
-extern int LINUX_KERNEL_VERSION __kconfig;
+extern __u32 LINUX_KERNEL_VERSION __kconfig;
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);

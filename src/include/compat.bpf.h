@@ -10,7 +10,7 @@
 #define MAX_EVENT_SIZE		10240
 #define RINGBUF_SIZE		(1024 * 256)
 
-extern int LINUX_KERNEL_VERSION __kconfig;
+extern __u32 LINUX_KERNEL_VERSION __kconfig;
 
 #ifndef __has_builtin		// Optional of course.
   #define __has_builtin(x) 0	// Compatibility with non-clang compilers.
@@ -36,7 +36,7 @@ static __always_inline void *reserve_buf(__u64 size)
 	if (bpf_core_type_exists(struct bpf_ringbuf))
 		return bpf_ringbuf_reserve(&events, size, 0);
 #endif
-	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 8, 0))
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(5, 18, 0))
 		return bpf_ringbuf_reserve(&events, size, 0);
 
 	return bpf_map_lookup_elem(&heap, &zero);
