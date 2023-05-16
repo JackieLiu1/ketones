@@ -186,7 +186,7 @@ $(BPFTOOL): | $(BPFTOOL_OUTPUT)
 	$(Q)$(MAKE) ARCH= CROSS_COMPILE= OUTPUT=$(BPFTOOL_OUTPUT)/ -C $(BPFTOOL_SRC)
 
 # Build BPF Code
-$(OUTPUT)/%.bpf.o: %/*.bpf.c $(LIBBPF_OBJ) %/*.h $(wildcard include/*.bpf.h) $(VMLINUX) | $(OUTPUT)
+$(OUTPUT)/%.bpf.o: %/*.bpf.c $(LIBBPF_OBJ) $(wildcard include/*.bpf.h) $(VMLINUX) | $(OUTPUT)
 	$(call msg,BPF,$(notdir $@))
 	$(Q)$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $< -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
@@ -203,7 +203,7 @@ $(OUTPUT)/libs/%.o: libs/%.c include/%.h $(LIBBPF_OBJ) | $(OUTPUT)/libs
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(filter %.c,$^) -o $@
 
-$(OUTPUT)/%.o: %/*.c %/*.h $(wildcard include/*.h) $(LIBBPF_OBJ) | $(OUTPUT)
+$(OUTPUT)/%.o: %/*.c $(wildcard include/*.h) $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $(lastword $(filter %.c, $(sort $^))) -o $@
 
