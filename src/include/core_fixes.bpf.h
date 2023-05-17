@@ -223,4 +223,70 @@ static __always_inline bool has_kmem_cache_free()
 	return false;
 }
 
+/**
+ * commit 2c1d697fb8ba ("mm/slab_common: drop kmem_alloc & avoid dereferencing
+ * fields when not using") Drop kmem_alloc event class, and define kmalloc and
+ * kmem_cache_alloc using TRACE_EVENT() macro.
+ */
+struct trace_event_raw_kmem_alloc___x {
+	const void *ptr;
+	size_t bytes_alloc;
+} __attribute__((preserve_access_index));
+
+struct trace_event_raw_kmalloc___x {
+	const void *ptr;
+	size_t bytes_alloc;
+} __attribute__((preserve_access_index));
+
+struct trace_event_raw_kmem_cache_alloc___x {
+	const void *ptr;
+	size_t bytes_alloc;
+} __attribute__((preserve_access_index));
+
+static __always_inline bool has_kmalloc()
+{
+#if __has_builtin(__builtin_preserve_type_info)
+	if (bpf_core_type_exists(struct trace_event_raw_kmalloc___x))
+		return true;
+#endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(6, 1, 0))
+		return true;
+
+	return false;
+}
+
+static __always_inline bool has_kmem_cache_alloc()
+{
+#if __has_builtin(__builtin_preserve_type_info)
+	if (bpf_core_type_exists(struct trace_event_raw_kmem_cache_alloc___x))
+		return true;
+#endif
+	if (LINUX_KERNEL_VERSION >= KERNEL_VERSION(6, 1, 0))
+		return true;
+
+	return false;
+}
+
+/**
+ * commit 11e9734bcb6a ("mm/slab_common: unify NUMA and UMA version of
+ * tracepoints") Drop kmem_alloc event class, rename kmem_alloc_node to
+ * kmem_alloc, and remove _node postfix for NUMA version of tracepoints.
+ */
+struct trace_event_raw_kmem_alloc_node___o {
+	const void *ptr;
+	size_t bytes_alloc;
+} __attribute__((preserve_access_index));
+
+static __always_inline bool has_kmem_alloc_node()
+{
+#if __has_builtin(__builtin_preserve_type_info)
+        if (bpf_core_type_exists(struct trace_event_raw_kmem_alloc_node___o))
+		return true;
+#endif
+        if (LINUX_KERNEL_VERSION < KERNEL_VERSION(6, 1, 0))
+		return true;
+
+	return false;
+}
+
 #endif /* __CORE_FIXES_BPF_H */
