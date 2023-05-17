@@ -62,22 +62,125 @@ static void sig_handler(int sig)
 	exiting = true;
 }
 
-static int readahead__set_attach_target(struct bpf_program *prog)
+static bool readahead__set_attach_target(struct bpf_program *prog)
 {
-	int err;
+	if (!bpf_program__set_attach_target(prog, 0, "do_page_cache_ra"))
+		return true;
 
-	err = bpf_program__set_attach_target(prog, 0, "do_page_cache_ra");
-	if (!err)
-		return 0;
+	if (!bpf_program__set_attach_target(prog, 0,
+					    "__do_page_cache_readahead"))
+		return true;
 
-	err = bpf_program__set_attach_target(prog, 0,
-					     "__do_page_cache_readahead");
-	if (!err)
-		return 0;
+	return false;
+}
 
-	warning("Failed to set attach target for %s: %s\n",
-		bpf_program__name(prog), strerror(-err));
-	return err;
+static void disable_kprobes(struct readahead_bpf *obj)
+{
+	bpf_program__set_autoload(obj->progs.do_page_cache_ra_kprobe, false);
+	bpf_program__set_autoload(obj->progs.do_page_cache_ra_kretprobe, false);
+	bpf_program__set_autoload(obj->progs.page_cache_alloc_kretprobe, false);
+	bpf_program__set_autoload(obj->progs.mark_page_accessed_kprobe, false);
+	bpf_program__set_autoload(obj->progs.filemap_alloc_folio_kretprobe, false);
+	bpf_program__set_autoload(obj->progs.folio_mark_accessed_kprobe, false);
+}
+
+static void disable_fentry(struct readahead_bpf *obj)
+{
+	bpf_program__set_autoload(obj->progs.do_page_cache_ra, false);
+	bpf_program__set_autoload(obj->progs.do_page_cache_ra_ret, false);
+	bpf_program__set_autoload(obj->progs.page_cache_alloc_ret, false);
+	bpf_program__set_autoload(obj->progs.mark_page_accessed, false);
+	bpf_program__set_autoload(obj->progs.filemap_alloc_folio_ret, false);
+	bpf_program__set_autoload(obj->progs.folio_mark_accessed, false);
+}
+
+static bool try_fentry(struct readahead_bpf *obj)
+{
+	/*
+	 * starting from v5.10-rc1, __do_page_cache_readahead has renamed to
+	 * do_page_cache_ra, so we specify the function dynamically.
+	 */
+	if (!readahead__set_attach_target(obj->progs.do_page_cache_ra))
+		goto out_shutdown_fentry;
+	if (!readahead__set_attach_target(obj->progs.do_page_cache_ra_ret))
+		goto out_shutdown_fentry;
+
+	if (fentry_can_attach("folio_mark_accessed", NULL) &&
+	    fentry_can_attach("filemap_alloc_folio", NULL)) {
+		bpf_program__set_autoload(obj->progs.page_cache_alloc_ret, false);
+		bpf_program__set_autoload(obj->progs.mark_page_accessed, false);
+	} else if (fentry_can_attach("mark_page_accessed", NULL) &&
+		   fentry_can_attach("__page_cache_alloc", NULL)) {
+		bpf_program__set_autoload(obj->progs.filemap_alloc_folio_ret, false);
+		bpf_program__set_autoload(obj->progs.folio_mark_accessed, false);
+	} else {
+		goto out_shutdown_fentry;
+	}
+
+	disable_kprobes(obj);
+	return true;
+
+out_shutdown_fentry:
+	disable_fentry(obj);
+	return false;
+}
+
+static int set_autoload_kprobes(struct readahead_bpf *obj)
+{
+	if (kprobe_exists("folio_mark_accessed") &&
+	    kprobe_exists("filemap_alloc_folio")) {
+		bpf_program__set_autoload(obj->progs.page_cache_alloc_kretprobe, false);
+		bpf_program__set_autoload(obj->progs.mark_page_accessed_kprobe, false);
+	} else if (kprobe_exists("mark_page_accessed") &&
+		   kprobe_exists("__page_cache_alloc")) {
+		bpf_program__set_autoload(obj->progs.filemap_alloc_folio_kretprobe, false);
+		bpf_program__set_autoload(obj->progs.folio_mark_accessed_kprobe, false);
+	} else {
+		return 1;
+	}
+
+	return 0;
+}
+
+static int attach_kprobes(struct readahead_bpf *obj)
+{
+	/*
+	 * starting from v5.10-rc1, __do_page_cache_readahead has renamed to
+	 * do_page_cache_ra, so we specify the function dynamically.
+	 */
+	if (kprobe_exists("do_page_cache_ra")) {
+		obj->links.do_page_cache_ra_kprobe =
+			bpf_program__attach_kprobe(obj->progs.do_page_cache_ra_kprobe,
+						   false,
+						   "do_page_cache_ra");
+		if (!obj->links.do_page_cache_ra_kprobe)
+			return 1;
+	} else {
+		obj->links.do_page_cache_ra_kprobe =
+			bpf_program__attach_kprobe(obj->progs.do_page_cache_ra_kprobe,
+						   false,
+						   "__do_page_cache_readahead");
+		if (!obj->links.do_page_cache_ra_kprobe)
+			return 1;
+	}
+
+	if (kprobe_exists("do_page_cache_ra")) {
+		obj->links.do_page_cache_ra_kretprobe =
+			bpf_program__attach_kprobe(obj->progs.do_page_cache_ra_kretprobe,
+						   true,
+						   "do_page_cache_ra");
+		if (!obj->links.do_page_cache_ra_kretprobe)
+			return 1;
+	} else {
+		obj->links.do_page_cache_ra_kretprobe =
+			bpf_program__attach_kprobe(obj->progs.do_page_cache_ra_kretprobe,
+						   true,
+						   "__do_page_cache_readahead");
+		if (!obj->links.do_page_cache_ra_kretprobe)
+			return 1;
+	}
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -90,6 +193,7 @@ int main(int argc, char *argv[])
 	struct readahead_bpf *obj;
 	struct hist *histp;
 	int err;
+	bool support_fentry;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
 	if (err)
@@ -106,28 +210,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*
-	 * starting from v5.10-rc1, __do_page_cache_readahead has renamed to
-	 * do_page_cache_ra, so we specify the function dynamically.
-	 */
-	err = readahead__set_attach_target(obj->progs.do_page_cache_ra);
-	if (err)
-		goto cleanup;
-	err = readahead__set_attach_target(obj->progs.do_page_cache_ra_ret);
-	if (err)
-		goto cleanup;
-
-	if (fentry_can_attach("folio_mark_accessed", NULL) &&
-	    fentry_can_attach("filemap_alloc_folio", NULL)) {
-		bpf_program__set_autoload(obj->progs.page_cache_alloc_ret, false);
-		bpf_program__set_autoload(obj->progs.mark_page_accessed, false);
-	} else if (fentry_can_attach("mark_page_accessed", NULL) &&
-		   fentry_can_attach("__page_cache_alloc", NULL)) {
-		bpf_program__set_autoload(obj->progs.filemap_alloc_folio_ret, false);
-		bpf_program__set_autoload(obj->progs.folio_mark_accessed, false);
-	} else {
-		warning("page alloc entry can't attach\n");
-		goto cleanup;
+	support_fentry = try_fentry(obj);
+	if (!support_fentry) {
+		err = set_autoload_kprobes(obj);
+		if (err)
+			goto cleanup;
 	}
 
 	err = readahead_bpf__load(obj);
@@ -141,7 +228,7 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	err = readahead_bpf__attach(obj);
+	err = support_fentry ? readahead_bpf__attach(obj) : attach_kprobes(obj);
 	if (err) {
 		warning("Failed to attach BPF programs\n");
 		goto cleanup;
