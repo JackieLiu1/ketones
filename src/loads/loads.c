@@ -16,6 +16,8 @@ static struct env {
 	.interval = 1,
 };
 
+#define MAX_NR_CPUS	1024
+
 static volatile bool exiting = false;
 
 const char *argp_program_version = "loads 0.1";
@@ -63,25 +65,34 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static int open_and_attach_perf_event(struct bpf_program *prog, struct bpf_link *link)
+static int nr_cpus;
+
+static int open_and_attach_perf_event(struct bpf_program *prog, struct bpf_link *link[])
 {
-	struct perf_event_attr attr = {
-		.type = PERF_TYPE_SOFTWARE,
-		.config = PERF_COUNT_SW_CPU_CLOCK,
-		.sample_period = env.interval * 500000000,
-	};
+	for (int i = 0; i < nr_cpus; i++) {
+		struct perf_event_attr attr = {
+			.type = PERF_TYPE_SOFTWARE,
+			.config = PERF_COUNT_SW_CPU_CLOCK,
+			.sample_period = 1 / env.interval,
+			.freq = 1,
+		};
 
-	int fd = syscall(__NR_perf_event_open, &attr, -1, 0, -1, 0);
-	if (fd < 0) {
-		warning("Failed to init perf sampling: %s\n", strerror(errno));
-		return -1;
-	}
+		int fd = syscall(SYS_perf_event_open, &attr, -1, i, -1, 0);
+		if (fd < 0) {
+			/* Ignore CPU that is offline */
+			if (errno == ENODEV)
+				continue;
 
-	link = bpf_program__attach_perf_event(prog, fd);
-	if (!link) {
-		warning("Failed to attach perf event on CPU#0\n");
-		close(fd);
-		return 1;
+			warning("Failed to init perf sampling: %s\n", strerror(errno));
+			return -1;
+		}
+
+		link[i] = bpf_program__attach_perf_event(prog, fd);
+		if (!link[i]) {
+			warning("Failed to attach perf event on CPU#0\n");
+			close(fd);
+			return 1;
+		}
 	}
 
 	return 0;
@@ -127,7 +138,7 @@ int main(int argc, char *argv[])
 		.parser = parse_arg,
 		.doc = argp_program_doc,
 	};
-	struct bpf_link *link = NULL;
+	struct bpf_link *link[MAX_NR_CPUS] = {};
 	struct loads_bpf *obj;
 	struct ksyms *ksyms = NULL;
 	const struct ksym *ksym;
@@ -141,6 +152,18 @@ int main(int argc, char *argv[])
 		return 1;
 
 	libbpf_set_print(libbpf_print_fn);
+
+	nr_cpus = libbpf_num_possible_cpus();
+	if (nr_cpus < 0) {
+		warning("Failed to get # of possible cpus: '%s'!\n",
+			strerror(-nr_cpus));
+		return 1;
+	}
+	if (nr_cpus > MAX_NR_CPUS) {
+		warning("The number of cpu cores is too big, please increase "
+			"MAX_CPU_NR's value and recompile");
+		return 1;
+	}
 
 	err = ensure_core_btf(&open_opts);
 	if (err) {
@@ -199,7 +222,9 @@ int main(int argc, char *argv[])
 	}
 
 cleanup:
-	bpf_link__destroy(link);
+	for (int i = 0; i < nr_cpus; i++)
+		bpf_link__destroy(link[i]);
+
 	loads_bpf__destroy(obj);
 	cleanup_core_btf(&open_opts);
 	ksyms__free(ksyms);
