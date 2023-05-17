@@ -102,9 +102,9 @@ static void sig_handler(int sig)
 
 static void print_loads(struct loads_bpf__bss *bss)
 {
-	__u64 load1 = __atomic_exchange_n(&bss->loads[0], 0, __ATOMIC_RELAXED);
-	__u64 load5 = __atomic_exchange_n(&bss->loads[1], 0, __ATOMIC_RELAXED);
-	__u64 load15 = __atomic_exchange_n(&bss->loads[2], 0, __ATOMIC_RELAXED);
+	__u64 load1  = __atomic_load_n(&bss->loads[0], __ATOMIC_RELAXED);
+	__u64 load5  = __atomic_load_n(&bss->loads[1], __ATOMIC_RELAXED);
+	__u64 load15 = __atomic_load_n(&bss->loads[2], __ATOMIC_RELAXED);
 
 	if (env.timestamp) {
 		char ts[32];
