@@ -589,6 +589,14 @@ static void enable_fentry(struct klockstat_bpf *obj)
 	bpf_program__set_autoload(obj->progs.kprobe_down_write_killable_exit, false);
 	bpf_program__set_autoload(obj->progs.kprobe_up_write, false);
 
+	/**
+	 * commit 31784cff7ee0 ("rwsem: Implement down_read_interruptible")
+	 */
+	if (!fentry_can_attach("down_read_interruptible", NULL)) {
+		bpf_program__set_autoload(obj->progs.down_read_interruptible, false);
+		bpf_program__set_autoload(obj->progs.down_read_interruptible_exit, false);
+	}
+
 	/* CONFIG_DEBUG_LOCK_ALLOC is on */
 	debug_lock = fentry_can_attach("mutex_lock_nested", NULL);
 	if (!debug_lock)
@@ -650,6 +658,14 @@ static void enable_kprobes(struct klockstat_bpf *obj)
 	bpf_program__set_autoload(obj->progs.down_write_killable, false);
 	bpf_program__set_autoload(obj->progs.down_write_killable_exit, false);
 	bpf_program__set_autoload(obj->progs.up_write, false);
+
+	/**
+	 * commit 31784cff7ee0 ("rwsem: Implement down_read_interruptible")
+	 */
+	if (!kprobe_exists("down_read_interruptible")) {
+		bpf_program__set_autoload(obj->progs.kprobe_down_read_interruptible, false);
+		bpf_program__set_autoload(obj->progs.kprobe_down_read_interruptible_exit, false);
+	}
 }
 
 int main(int argc, char *argv[])
