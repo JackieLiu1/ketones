@@ -888,4 +888,34 @@ static inline const char *strerrno(int errnum)
 	return strdup(string);
 }
 
+static inline char *
+find_library_so(const char *binary, const char *library)
+{
+	FILE *f;
+	char *line = NULL;
+	size_t line_sz;
+	char *result = NULL;
+	char path[128] = {};
+	char command[128] = {};
+
+	sprintf(command, "ldd %s", binary);
+	f = popen(command, "r");
+	if (!f)
+		return NULL;
+
+	while (getline(&line, &line_sz, f) >= 0) {
+		if (sscanf(line, "%*s => %127s", path) < 1)
+			continue;
+		if (strstr(line, library)) {
+			result = strdup(path);
+			break;
+		}
+	}
+
+	free(line);
+	pclose(f);
+
+	return result;
+}
+
 #endif

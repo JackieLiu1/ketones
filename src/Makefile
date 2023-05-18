@@ -93,6 +93,7 @@ APPS += tcpstates
 APPS += tcpsynbl
 APPS += tcptop
 APPS += tcptracer
+APPS += threadsnoop
 APPS += ttysnoop
 APPS += vfsstat
 APPS += wakeuptime

@@ -75,40 +75,6 @@ static void handle_lost_event(void *ctx, int cpu, __u64 lost_cnt)
 	warning("lost %llu events on CPU #%d!\n", lost_cnt, cpu);
 }
 
-static char *find_readline_so(void)
-{
-	const char *bash_path = "/bin/bash";
-	FILE *fp;
-	off_t func_off;
-	char *line = NULL;
-	size_t line_sz = 0;
-	char path[128];
-	char *result = NULL;
-
-	func_off = get_elf_func_offset(bash_path, "readline");
-	if (func_off >= 0)
-		return strdup(bash_path);
-
-	fp = popen("ldd /bin/bash", "r");
-	if (!fp)
-		goto cleanup;
-	while (getline(&line, &line_sz, fp) >= 0) {
-		if (sscanf(line, "%*s => %127s", path) < 1)
-			continue;
-		if (strstr(line, "/libreadline.so")) {
-			result = strdup(path);
-			break;
-		}
-	}
-
-cleanup:
-	if (line)
-		free(line);
-	if (fp)
-		pclose(fp);
-	return result;
-}
-
 static void sig_handler(int sig)
 {
 	exiting = true;
@@ -138,9 +104,18 @@ int main(int argc, char *argv[])
 
 	if (env.libreadline_path) {
 		readline_so_path = env.libreadline_path;
-	} else if ((readline_so_path = find_readline_so()) == NULL) {
-		warning("Failed to find readline\n");
-		return 1;
+	} else {
+		const char *bash_path = "/bin/bash";
+
+		if (get_elf_func_offset(bash_path, "readline") >= 0)
+			readline_so_path = strdup(bash_path);
+		else {
+			readline_so_path = find_library_so(bash_path, "/libreadline.so");
+			if (!readline_so_path) {
+				warning("Failed to find readline\n");
+				return 1;
+			}
+		}
 	}
 
 	libbpf_set_print(libbpf_print_fn);
