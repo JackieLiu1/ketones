@@ -81,6 +81,7 @@ APPS += slabratetop
 APPS += softirqs
 APPS += solisten
 APPS += statsnoop
+APPS += syncsnoop
 APPS += syscount
 APPS += swapin
 APPS += tcpconnect
