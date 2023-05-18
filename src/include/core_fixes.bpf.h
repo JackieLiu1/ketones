@@ -172,13 +172,6 @@ static __always_inline bool iov_iter_has_ubuf(void)
 	return false;
 }
 
-static __always_inline int get_iov_iter_type(struct iov_iter *iov_iter)
-{
-	if (iov_iter_has_iter_type())
-		return BPF_CORE_READ(iov_iter, iter_type);
-	return BPF_CORE_READ((struct iov_iter___o *)iov_iter, type);
-}
-
 /**
  * commit 3544de8ee6e4("mm, tracing: record slab name for kmem_cache_free()")
  * replaces `trace_event_raw_kmem_free` with `trace_event_raw_kfree` and adds

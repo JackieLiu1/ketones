@@ -64,7 +64,6 @@ int BPF_KPROBE(kprobe__tty_write)
 	} else {
 		struct kiocb *iocb = (struct kiocb *)PT_REGS_PARM1_CORE(ctx);
 		struct iov_iter *from = (struct iov_iter *)PT_REGS_PARM2_CORE(ctx);
-		const struct kvec *kvec;
 
 		file = BPF_CORE_READ(iocb, ki_filp);
 
@@ -99,8 +98,15 @@ int BPF_KPROBE(kprobe__tty_write)
 				return 0;
 			}
 		} else {
-			if (get_iov_iter_type(from) != (ITER_IOVEC + WRITE))
+			unsigned int type;
+
+			if (iov_iter_has_iter_type())
+				type = BPF_CORE_READ((struct iov_iter___x *)from, iter_type);
+			else
+				type = BPF_CORE_READ((struct iov_iter___o *)from, type);
+			if (type != (ITER_IOVEC + WRITE))
 				return 0;
+
 			buf = BPF_CORE_READ(from, kvec, iov_base);
 			count = BPF_CORE_READ(from, kvec, iov_len);
 		}
