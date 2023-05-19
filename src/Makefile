@@ -97,6 +97,7 @@ APPS += threadsnoop
 APPS += ttysnoop
 APPS += vfsstat
 APPS += wakeuptime
+APPS += writeback
 APPS += $(BZ_APPS)
 
 COMMON_LIBS_OBJ := $(OUTPUT)/libs/trace_helpers.o
