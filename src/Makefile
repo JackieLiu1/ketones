@@ -154,7 +154,7 @@ $(call allow-override,CC,$(CROSS_COMPILE)cc)
 $(call allow-override,LD,$(CROSS_COMPILE)ld)
 
 .PHONY: all
-all: $(OUTPUT_BINARIES) $(APP_ALIASES)
+all: $(OUTPUT_BINARIES) $(APP_ALIASES) bin/bpflist
 
 .PHONY: clean
 clean:
@@ -217,6 +217,11 @@ $(BINARIES_DIR)/%: $(OUTPUT)/%.o $(COMMON_LIBS_OBJ) $(LIBBPF_OBJ) | $(OUTPUT) $(
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 
 $(addprefix $(BINARIES_DIR)/, numasched numamove): ALL_LDFLAGS += -lnuma
+
+# Build user application binary
+bin/bpflist: bpflist/bpflist.c include/commons.h | $(BINARIES_DIR)
+	$(call msg,BINARY,$(notdir $@))
+	$(Q)$(CC) $(CFLAGS) $< $(ALL_LDFLAGS) -I./include -lelf -lz -o $@
 
 ifeq ($(USE_BLAZESYM),1)
 $(patsubst %,$(OUTPUT)/%.o,$(BZ_APPS)): $(OUTPUT)/blazesym.h
