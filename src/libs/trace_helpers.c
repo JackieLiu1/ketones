@@ -42,11 +42,15 @@ struct ksyms {
 	char *strs;
 	int strs_sz;
 	int strs_cap;
+	char *modules;
+	int modules_sz;
+	int modules_cap;
 };
 
-static int ksyms__add_symbol(struct ksyms *ksyms, const char *name, unsigned long addr)
+static int ksyms__add_symbol(struct ksyms *ksyms, const char *name, unsigned long addr,
+			     const char *module)
 {
-	size_t new_cap, name_len = strlen(name) + 1;
+	size_t new_cap, name_len = strlen(name) + 1, module_len;
 	struct ksym *ksym;
 	void *tmp;
 
@@ -73,6 +77,20 @@ static int ksyms__add_symbol(struct ksyms *ksyms, const char *name, unsigned lon
 		ksyms->syms_cap = new_cap;
 	}
 
+	if (module) {
+		module_len = strlen(module) + 1;
+		if (ksyms->modules_sz + module_len > ksyms->modules_cap) {
+			new_cap = ksyms->modules_cap * 4 / 3;
+			if (new_cap < 1024)
+				new_cap = 1024;
+			tmp = realloc(ksyms->modules, sizeof(*ksyms->modules) * new_cap);
+			if (!tmp)
+				return -1;
+			ksyms->modules = tmp;
+			ksyms->modules_cap = new_cap;
+		}
+	}
+
 	ksym = &ksyms->syms[ksyms->syms_sz];
 	/* while constructing, re-use pointer as just a plain offset */
 	ksym->name = (void *)(unsigned long)ksyms->strs_sz;
@@ -81,6 +99,15 @@ static int ksyms__add_symbol(struct ksyms *ksyms, const char *name, unsigned lon
 	memcpy(ksyms->strs + ksyms->strs_sz, name, name_len);
 	ksyms->strs_sz += name_len;
 	ksyms->syms_sz++;
+
+	if (module) {
+		ksym->module = (void *)(unsigned long)ksyms->modules_sz;
+		memcpy(ksyms->modules + ksyms->modules_sz, module, module_len);
+		ksyms->modules_sz += module_len;
+	} else {
+		/* Not module, init to invalid pointer */
+		ksym->module = (void *)-1;
+	}
 
 	return 0;
 }
@@ -96,7 +123,7 @@ static int ksym_cmp(const void *p1, const void *p2)
 
 struct ksyms *ksyms__load(void)
 {
-	char sym_type, sym_name[256];
+	char sym_type, sym_name[256], module_name[256];
 	struct ksyms *ksyms;
 	unsigned long sym_addr;
 	int i, ret;
@@ -111,19 +138,38 @@ struct ksyms *ksyms__load(void)
 		goto err_out;
 
 	while (true) {
-		ret = fscanf(f, "%lx %c %s%*[^\n]\n",
-			     &sym_addr, &sym_type, sym_name);
+		char mod_info[256];
+		const char *module_info;
+
+		ret = fscanf(f, "%lx %c %s%[^\n]\n",
+			     &sym_addr, &sym_type, sym_name, mod_info);
 		if (ret == EOF && feof(f))
 			break;
-		if (ret != 3)
+		if (ret < 3)
 			goto err_out;
-		if (ksyms__add_symbol(ksyms, sym_name, sym_addr))
+		if (ret == 4) {
+			if (sscanf(mod_info, "%*[\t ][%[^]]", module_name) < 1)
+				goto err_out;
+			module_info = module_name;
+		} else {
+			module_info = NULL;
+		}
+
+		if (ksyms__add_symbol(ksyms, sym_name, sym_addr, module_info))
 			goto err_out;
 	}
 
 	/* now when strings are finalized, adjust pointers properly */
-	for (i = 0; i < ksyms->syms_sz; i++)
+	for (i = 0; i < ksyms->syms_sz; i++) {
 		ksyms->syms[i].name += (unsigned long)ksyms->strs;
+
+		/* -1 mean not module */
+		if (ksyms->syms[i].module != (void *)-1)
+			ksyms->syms[i].module += (unsigned long)ksyms->modules;
+		else
+			/* reset to NULL, if it isn't module */
+			ksyms->syms[i].module = NULL;
+	}
 
 	qsort(ksyms->syms, ksyms->syms_sz, sizeof(*ksyms->syms), ksym_cmp);
 
@@ -143,6 +189,7 @@ void ksyms__free(struct ksyms *ksyms)
 
 	free(ksyms->syms);
 	free(ksyms->strs);
+	free(ksyms->modules);
 	free(ksyms);
 }
 

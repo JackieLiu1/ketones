@@ -11,6 +11,7 @@
 struct ksym {
 	const char *name;
 	unsigned long addr;
+	const char *module;
 };
 
 struct ksyms;

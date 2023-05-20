@@ -80,6 +80,7 @@ APPS += sigsnoop
 APPS += slabratetop
 APPS += softirqs
 APPS += solisten
+APPS += stacksnoop
 APPS += statsnoop
 APPS += syncsnoop
 APPS += syscount
