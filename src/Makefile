@@ -53,6 +53,7 @@ APPS += execsnoop
 APPS += exitsnoop
 APPS += filelife
 APPS += filetop
+APPS += filesnoop
 APPS += fsdist
 APPS += fsslower
 APPS += funclatency
@@ -117,7 +118,8 @@ endif
 FSDIST_ALIASES	 := $(addprefix $(BINARIES_DIR)/, btrfsdist ext4dist nfsdist xfsdist)
 FSSLOWER_ALIASES := $(addprefix $(BINARIES_DIR)/, btrfsslower ext4slower nfsslower xfsslower)
 SIGSNOOP_ALIAS := $(addprefix $(BINARIES_DIR)/, killsnoop)
-APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES) $(SIGSNOOP_ALIAS)
+FILESNOOP_ALIAS := $(addprefix $(BINARIES_DIR)/, opensnoop2 closesnoop writesnoop readsnoop statsnoop)
+APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES) $(SIGSNOOP_ALIAS) $(FILESNOOP_ALIAS)
 
 OUTPUT_BINARIES := $(addprefix $(BINARIES_DIR)/, $(APPS))
 
@@ -236,6 +238,10 @@ $(FSDIST_ALIASES): $(addprefix $(BINARIES_DIR)/, fsdist)
 	$(Q)ln -f -s $(notdir $^) $@
 
 $(SIGSNOOP_ALIAS): $(addprefix $(BINARIES_DIR)/, sigsnoop)
+	$(call msg,SYMLINK,$(notdir $@))
+	$(Q)ln -f -s $(notdir $^) $@
+
+$(FILESNOOP_ALIAS): $(addprefix $(BINARIES_DIR)/, filesnoop)
 	$(call msg,SYMLINK,$(notdir $@))
 	$(Q)ln -f -s $(notdir $^) $@
 
