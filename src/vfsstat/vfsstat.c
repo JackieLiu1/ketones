@@ -5,6 +5,8 @@
 #include "btf_helpers.h"
 #include "trace_helpers.h"
 
+static volatile bool exiting = false;
+
 const char *argp_program_version = "vfsstat 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
 const char argp_program_doc[] =
@@ -28,6 +30,7 @@ static struct env {
 	int interval;
 } env = {
 	.interval = 1, /* once a second */
+	.count = 99999999,
 };
 
 static error_t parse_arg(int key, char *arg, struct argp_state *state)
@@ -95,6 +98,11 @@ static void print_and_reset_stats(__u64 stats[S_MAXSTAT])
 	printf("\n");
 }
 
+static void sig_handler(int sig)
+{
+	exiting = true;
+}
+
 int main(int argc, char *argv[])
 {
 	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
@@ -160,12 +168,17 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
+	signal(SIGINT, sig_handler);
+
 	print_header();
 
-	do {
+	while (!exiting) {
 		sleep(env.interval);
 		print_and_reset_stats(skel->bss->stats);
-	} while (!env.count || --env.count);
+
+		if (--env.count == 0)
+			break;
+	}
 
 cleanup:
 	vfsstat_bpf__destroy(skel);
