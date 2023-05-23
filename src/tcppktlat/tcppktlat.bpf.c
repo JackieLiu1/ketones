@@ -29,7 +29,6 @@ handle_tcp_probe(struct sock *sk, struct sk_buff *skb)
 	const struct inet_sock *inet = (struct inet_sock *)sk;
 	u64 sock_cookie, ts, len, doff;
 	const struct tcphdr *th;
-	__u16 family;
 
 	if (target_family && target_family != BPF_CORE_READ(sk, __sk_common.skc_family))
 		return 0;

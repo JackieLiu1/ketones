@@ -24,7 +24,7 @@ endif
 endif
 
 INCLUDES := -I$(OUTPUT) -I../libbpf/include/uapi -I$(dir $(VMLINUX)) -I./include
-CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS)
+CFLAGS := -g -Wall $(CLANG_CROSS_FLAGS) -Wunused-variable
 ifeq ($(USE_BLAZESYM),1)
 CFLAGS  += -DUSE_BLAZESYM=1
 LDFLAGS += $(OUTPUT)/libblazesym.a -lrt -lpthread -ldl
@@ -97,6 +97,7 @@ APPS += tcptop
 APPS += tcptracer
 APPS += threadsnoop
 APPS += ttysnoop
+APPS += vfscount
 APPS += vfsstat
 APPS += wakeuptime
 APPS += writeback
@@ -194,7 +195,7 @@ $(BPFTOOL): | $(BPFTOOL_OUTPUT)
 # Build BPF Code
 $(OUTPUT)/%.bpf.o: %/*.bpf.c $(LIBBPF_OBJ) $(wildcard include/*.bpf.h) $(VMLINUX) | $(OUTPUT)
 	$(call msg,BPF,$(notdir $@))
-	$(Q)$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $< -o $@
+	$(Q)$(CLANG) -Wunused-variable -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $< -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
 # Generate BPF skeletons

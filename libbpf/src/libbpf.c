@@ -10418,6 +10418,50 @@ struct kprobe_multi_resolve {
 	size_t cnt;
 };
 
+static bool available_filter_functions(const char *name)
+{
+	char addr_range[256];
+	char sym_name[256];
+	FILE *f;
+	int ret;
+
+	f = fopen("/sys/kernel/debug/kprobes/blacklist", "r");
+	if (!f)
+		goto avail_filter;
+
+	while (true) {
+		ret = fscanf(f, "%s %s%*[^\n]\n", addr_range, sym_name);
+		if (ret == EOF && feof(f))
+			break;
+		if (ret != 2)
+			break;
+		if (!strcmp(name, sym_name)) {
+			fclose(f);
+			return false;
+		}
+	}
+	fclose(f);
+
+avail_filter:
+	f = fopen("/sys/kernel/debug/tracing/available_filter_functions", "r");
+	if (!f)
+		return true;
+
+	while (true) {
+		ret = fscanf(f, "%s%*[^\n]\n", sym_name);
+		if (ret == EOF && feof(f))
+			break;
+		if (ret != 1)
+			break;
+		if (!strcmp(name, sym_name)) {
+			fclose(f);
+			return true;
+		}
+	}
+	fclose(f);
+	return false;
+}
+
 static int
 resolve_kprobe_multi_cb(unsigned long long sym_addr, char sym_type,
 			const char *sym_name, void *ctx)
@@ -10426,6 +10470,9 @@ resolve_kprobe_multi_cb(unsigned long long sym_addr, char sym_type,
 	int err;
 
 	if (!glob_match(sym_name, res->pattern))
+		return 0;
+
+	if (!available_filter_functions(sym_name))
 		return 0;
 
 	err = libbpf_ensure_mem((void **) &res->addrs, &res->cap, sizeof(unsigned long),

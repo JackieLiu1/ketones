@@ -17,8 +17,6 @@ const volatile int pts_inode = -1;
 static __always_inline int
 do_tty_write(void *ctx, const char *buf, size_t count)
 {
-	int zero = 0;
-
 	for (int i = 0; i < user_data_count && count; i++) {
 		struct event *event = reserve_buf(sizeof(*event));
 		if (!event)
