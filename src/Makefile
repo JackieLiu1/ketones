@@ -56,6 +56,7 @@ APPS += filetop
 APPS += filesnoop
 APPS += fsdist
 APPS += fsslower
+APPS += funccount
 APPS += funclatency
 APPS += gethostlatency
 APPS += hardirqs
@@ -97,7 +98,6 @@ APPS += tcptop
 APPS += tcptracer
 APPS += threadsnoop
 APPS += ttysnoop
-APPS += vfscount
 APPS += vfsstat
 APPS += wakeuptime
 APPS += writeback
@@ -120,7 +120,9 @@ FSDIST_ALIASES	 := $(addprefix $(BINARIES_DIR)/, btrfsdist ext4dist nfsdist xfsd
 FSSLOWER_ALIASES := $(addprefix $(BINARIES_DIR)/, btrfsslower ext4slower nfsslower xfsslower)
 SIGSNOOP_ALIAS := $(addprefix $(BINARIES_DIR)/, killsnoop)
 FILESNOOP_ALIAS := $(addprefix $(BINARIES_DIR)/, opensnoop2 closesnoop writesnoop readsnoop statsnoop)
-APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES) $(SIGSNOOP_ALIAS) $(FILESNOOP_ALIAS)
+FUNCCOUNT_ALIAS := $(addprefix $(BINARIES_DIR)/, vfscount)
+APP_ALIASES := $(FSDIST_ALIASES) $(FSSLOWER_ALIASES) $(SIGSNOOP_ALIAS) $(FILESNOOP_ALIAS) \
+	       $(FUNCCOUNT_ALIAS)
 
 OUTPUT_BINARIES := $(addprefix $(BINARIES_DIR)/, $(APPS))
 
@@ -243,6 +245,10 @@ $(SIGSNOOP_ALIAS): $(addprefix $(BINARIES_DIR)/, sigsnoop)
 	$(Q)ln -f -s $(notdir $^) $@
 
 $(FILESNOOP_ALIAS): $(addprefix $(BINARIES_DIR)/, filesnoop)
+	$(call msg,SYMLINK,$(notdir $@))
+	$(Q)ln -f -s $(notdir $^) $@
+
+$(FUNCCOUNT_ALIAS): $(addprefix $(BINARIES_DIR)/, funccount)
 	$(call msg,SYMLINK,$(notdir $@))
 	$(Q)ln -f -s $(notdir $^) $@
 
