@@ -10505,7 +10505,7 @@ static void kprobe_multi_resolve_resource_free(struct kprobe_multi_resolve *res)
 struct bpf_link *
 bpf_program__attach_kprobe_multi_opts(const struct bpf_program *prog,
 				      const char *pattern,
-				      const struct bpf_kprobe_multi_opts *opts)
+				      struct bpf_kprobe_multi_opts *opts)
 {
 	LIBBPF_OPTS(bpf_link_create_opts, lopts);
 	struct kprobe_multi_resolve res = {
@@ -10577,6 +10577,7 @@ bpf_program__attach_kprobe_multi_opts(const struct bpf_program *prog,
 		goto error;
 	}
 	link->fd = link_fd;
+	OPTS_SET(opts, cnt, res.cnt);
 	kprobe_multi_resolve_resource_free(&res);
 	return link;
 

@@ -130,6 +130,7 @@ static int print_maps(struct vfscount_bpf *obj)
 
 int main(int argc, char *argv[])
 {
+	LIBBPF_OPTS(bpf_kprobe_multi_opts, kmopts);
 	static const struct argp argp = {
 		.options = opts,
 		.parser = parse_arg,
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
 	}
 
 	obj->links.vfs_entry = bpf_program__attach_kprobe_multi_opts(
-					obj->progs.vfs_entry, "vfs_*", NULL);
+					obj->progs.vfs_entry, "vfs_*", &kmopts);
 	if (!obj->links.vfs_entry) {
 		warning("Failed attach kprobe multi, kernel don't support: %s\n", strerror(errno));
 		goto cleanup;
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
 
 	signal(SIGINT, sig_handler);
 
-	printf("Tracing functions... Ctrl-C to end.\n");
+	printf("Tracing %ld functions... Ctrl-C to end.\n", kmopts.cnt);
 	while (!exiting) {
 		sleep(env.interval);
 		printf("\n%-20s %-26s %8s\n", "ADDR", "FUNC", "COUNT");
