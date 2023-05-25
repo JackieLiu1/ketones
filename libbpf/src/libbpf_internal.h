@@ -484,10 +484,6 @@ typedef int (*kallsyms_cb_t)(unsigned long long sym_addr, char sym_type,
 
 int libbpf_kallsyms_parse(kallsyms_cb_t cb, void *arg);
 
-typedef int (*available_filter_functions_cb_t)(const char *sym_name, void *ctx);
-int libbpf_available_filter_functions_parse(available_filter_functions_cb_t cb,
-					    void *arg);
-
 /* handle direct returned errors */
 static inline int libbpf_err(int ret)
 {

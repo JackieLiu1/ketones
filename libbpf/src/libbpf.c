@@ -10103,6 +10103,12 @@ static const char *tracefs_uprobe_events(void)
 	return use_debugfs() ? DEBUGFS"/uprobe_events" : TRACEFS"/uprobe_events";
 }
 
+static const char *tracefs_available_filter_functions(void)
+{
+	return use_debugfs() ? DEBUGFS"/available_filter_functions" :
+			       TRACEFS"/available_filter_functions";
+}
+
 static void gen_kprobe_legacy_event_name(char *buf, size_t buf_sz,
 					 const char *kfunc_name, size_t offset)
 {
@@ -10429,8 +10435,8 @@ kallsyms_resolve_kprobe_multi_cb(unsigned long long sym_addr, char sym_type,
 	if (!glob_match(sym_name, res->pattern))
 		return 0;
 
-	err = libbpf_ensure_mem((void **) &res->addrs, &res->cap, sizeof(unsigned long),
-				res->cnt + 1);
+	err = libbpf_ensure_mem((void **) &res->addrs, &res->cap,
+				sizeof(unsigned long), res->cnt + 1);
 	if (err)
 		return err;
 
@@ -10438,35 +10444,45 @@ kallsyms_resolve_kprobe_multi_cb(unsigned long long sym_addr, char sym_type,
 	return 0;
 }
 
-static int
-resolve_kprobe_multi_cb(const char *sym_name, void *ctx)
+
+static int ftrace_resolve_kprobe_multi_cb(const char *sym_name, void *ctx)
 {
 	struct kprobe_multi_resolve *res = ctx;
 	int err;
+	char *name;
 
 	if (!glob_match(sym_name, res->pattern))
 		return 0;
 
-	err = libbpf_ensure_mem((void **) &res->syms, &res->cap, sizeof(const char *),
-				res->cnt + 1);
+	err = libbpf_ensure_mem((void **) &res->syms, &res->cap,
+				sizeof(const char *), res->cnt + 1);
 	if (err)
 		return err;
 
-	res->syms[res->cnt++] = strdup(sym_name);
+	name = strdup(sym_name);
+	if (!name)
+		return -errno;
+
+	res->syms[res->cnt++] = name;
 	return 0;
 }
 
-int libbpf_available_filter_functions_parse(available_filter_functions_cb_t cb,
-					    void *ctx)
+typedef int (*available_kprobe_cb_t)(const char *sym_name, void *ctx);
+
+static int
+libbpf_available_kprobes_parse(available_kprobe_cb_t cb, void *ctx)
 {
 	char sym_name[256];
 	FILE *f;
 	int ret, err = 0;
+	const char *available_path = tracefs_available_filter_functions();
 
-	f = fopen("/sys/kernel/debug/tracing/available_filter_functions", "r");
+	f = fopen(available_path, "r");
 	if (!f) {
-		pr_warn("failed to open available_filter_functions, fallback to kallsyms.\n");
-		goto fallback;
+		err = -errno;
+		pr_warn("failed to open %s, fallback to kallsyms.\n",
+			available_path);
+		return err;
 	}
 
 	while (true) {
@@ -10474,8 +10490,9 @@ int libbpf_available_filter_functions_parse(available_filter_functions_cb_t cb,
 		if (ret == EOF && feof(f))
 			break;
 		if (ret != 1) {
-			pr_warn("failed to read available_filter_functions entry: %d\n",
+			pr_warn("failed to read available kprobe entry: %d\n",
 				ret);
+			err = -EINVAL;
 			break;
 		}
 
@@ -10486,20 +10503,18 @@ int libbpf_available_filter_functions_parse(available_filter_functions_cb_t cb,
 
 	fclose(f);
 	return err;
-
-fallback:
-	return libbpf_kallsyms_parse(kallsyms_resolve_kprobe_multi_cb, ctx);
 }
 
-static void kprobe_multi_resolve_resource_free(struct kprobe_multi_resolve *res)
+static void
+kprobe_multi_resolve_free(struct kprobe_multi_resolve *res)
 {
-	if (res->syms) {
-		while (res->cnt)
-			free((char *)res->syms[--res->cnt]);
-		free(res->syms);
-	} else {
-		free(res->addrs);
-	}
+	while (res->syms && res->cnt)
+		free((char *)res->syms[--res->cnt]);
+
+	free(res->syms);
+	free(res->addrs);
+	/* reset cap to zero, when fallback */
+	res->cap = 0;
 }
 
 struct bpf_link *
@@ -10538,18 +10553,22 @@ bpf_program__attach_kprobe_multi_opts(const struct bpf_program *prog,
 		return libbpf_err_ptr(-EINVAL);
 
 	if (pattern) {
-		err = libbpf_available_filter_functions_parse(resolve_kprobe_multi_cb,
-							      &res);
-		if (err)
-			goto error;
+		err = libbpf_available_kprobes_parse(ftrace_resolve_kprobe_multi_cb,
+						     &res);
+		if (err) {
+			kprobe_multi_resolve_free(&res);
+			err = libbpf_kallsyms_parse(kallsyms_resolve_kprobe_multi_cb,
+						    &res);
+			if (err)
+				goto error;
+		}
+
 		if (!res.cnt) {
 			err = -ENOENT;
 			goto error;
 		}
-		if (res.syms)
-			syms = res.syms;
-		else
-			addrs = res.addrs;
+		syms = res.syms;
+		addrs = res.addrs;
 		cnt = res.cnt;
 	}
 
@@ -10578,12 +10597,12 @@ bpf_program__attach_kprobe_multi_opts(const struct bpf_program *prog,
 	}
 	link->fd = link_fd;
 	OPTS_SET(opts, cnt, res.cnt);
-	kprobe_multi_resolve_resource_free(&res);
+	kprobe_multi_resolve_free(&res);
 	return link;
 
 error:
 	free(link);
-	kprobe_multi_resolve_resource_free(&res);
+	kprobe_multi_resolve_free(&res);
 	return libbpf_err_ptr(err);
 }
 
