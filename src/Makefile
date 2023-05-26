@@ -11,7 +11,7 @@ BPFTOOL ?= $(BPFTOOL_OUTPUT)/bpftool
 LIBBLAZESYM_SRC := $(abspath ../blazesym/target/release/libblazesym.a)
 BINARIES_DIR := $(abspath ./bin)
 
-ARCH ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
+ARCH ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/' | sed 's/loongarch64/loongarch/')
 VMLINUX := ../vmlinux/$(ARCH)/vmlinux.h
 
 ifeq ($(ARCH),x86)
