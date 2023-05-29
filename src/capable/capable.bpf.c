@@ -72,7 +72,6 @@ int BPF_KPROBE(kprobe__cap_capable_entry, const struct cred *cred,
 	       struct user_namespace *target_ns, int cap, int cap_out)
 {
 	__u64 pid_tgid;
-	char comm[TASK_COMM_LEN] = {};
 	struct bpf_pidns_info nsdata;
 
 	if (filter_cg && !bpf_current_task_under_cgroup(&cgroup_map, 0))

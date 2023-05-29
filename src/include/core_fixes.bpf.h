@@ -149,25 +149,26 @@ static __always_inline bool renamedata_has_old_mnt_userns_field(void)
  * see:
  *     https://github.com/torvalds/linux/commit/8cd54c1c8480
  */
-struct iov_iter___x {
-	u8 iter_type;
-	void *ubuf;
-} __attribute__((preserve_access_index));
-
 struct iov_iter___o {
 	unsigned int type;
+} __attribute__((preserve_access_index));
+
+/* commit fcb14cb1bdac ("new iov_iter flavour - ITER_UBUF")
+ * implement new iov_iter flavour ITER_UBUF
+ * see:
+ *	https://github.com/torvalds/linux/commit/fcb14cb1bdac
+ */
+struct iov_iter___x {
+	u8 iter_type;
+	/* commit fcb14cb1bdac ("new iov_iter flavour - ITER_UBUF")
+	 * implement new iov_iter flavour ITER_UBUF
+	 */
+	void *ubuf;
 } __attribute__((preserve_access_index));
 
 static __always_inline bool iov_iter_has_iter_type(void)
 {
 	if (bpf_core_field_exists(struct iov_iter___x, iter_type))
-		return true;
-	return false;
-}
-
-static __always_inline bool iov_iter_has_ubuf(void)
-{
-	if (bpf_core_field_exists(struct iov_iter___x, ubuf))
 		return true;
 	return false;
 }

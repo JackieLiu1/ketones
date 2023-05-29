@@ -4,6 +4,9 @@
 #include "ttysnoop.skel.h"
 #include "compat.h"
 #include <sys/stat.h>
+#include <bpf/btf.h>
+#include <sys/utsname.h>
+#include "btf_helpers.h"
 
 static volatile bool exiting = false;
 
@@ -112,15 +115,13 @@ static void sig_handler(int sig)
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct event *e = data;
-	char buf[BUFSIZ+1] = {};
 	int fd = *(int *)ctx;
 
-	memcpy(buf, e->buf, e->count);
-	printf("%s", buf);
+	printf("%s", e->buf);
 	fflush(stdout);
 
 	if (fd > 0)
-		write(fd, buf, e->count);
+		write(fd, e->buf, e->count);
 
 	return 0;
 }
@@ -130,8 +131,76 @@ static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 	warning("Lost %llu event on CPU #%d!\n", lost_cnt, cpu);
 }
 
+static bool fallback_to_compare_kernel_version(void)
+{
+	struct utsname sys_info;
+	int major1, minor1, patch1;
+	int major2, minor2, patch2;
+	const char *version = "5.10.11";
+
+	uname(&sys_info);
+
+	sscanf(sys_info.release, "%d.%d.%d%*s", &major1, &minor1, &patch1);
+	sscanf(version, "%d.%d.%d%*s", &major2, &minor2, &patch2);
+
+	if (major1 < major2)
+		return false;
+	else if (major1 > major2)
+		return true;
+
+	if (minor1 < minor2)
+		return false;
+	else if (minor1 > minor2)
+		return true;
+
+	if (patch1 < patch2)
+		return false;
+	else if (patch1 > patch2)
+		return true;
+
+	return false;
+}
+
+static bool tty_write_is_newly(void)
+{
+	const struct btf_type *type;
+	__s32 id;
+	struct btf *btf;
+
+	btf = btf__load_vmlinux_btf();
+	if (!btf) {
+		warning("No BTF, cannot determine type info: %s", strerror(errno));
+		goto failed;
+	}
+
+	id = btf__find_by_name_kind(btf, "tty_write", BTF_KIND_FUNC);
+	if (id <= 0) {
+		warning("Can't find function tty_write in BTF: %s\n",
+			strerror(-id));
+		goto failed;
+	}
+
+	type = btf__type_by_id(btf, id);
+	if (!type || BTF_INFO_KIND(type->info) != BTF_KIND_FUNC)
+		goto failed;
+
+	type = btf__type_by_id(btf, type->type);
+	if (!type || BTF_INFO_KIND(type->info) != BTF_KIND_FUNC_PROTO)
+		goto failed;
+
+	btf__free(btf);
+	/* the newly tty_write has 2 params, old have 4 params */
+	if (btf_vlen(type) != 2)
+		return false;
+	return true;
+
+failed:
+	return fallback_to_compare_kernel_version();
+}
+
 int main(int argc, char *argv[])
 {
+	LIBBPF_OPTS(bpf_object_open_opts, open_opts);
 	const struct argp argp = {
 		.options = opts,
 		.parser = parse_arg,
@@ -140,6 +209,7 @@ int main(int argc, char *argv[])
 	struct ttysnoop_bpf *obj;
 	struct bpf_buffer *buf = NULL;
 	int err, fd = -1;
+	bool new_tty_write = false;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
 	if (err)
@@ -148,9 +218,16 @@ int main(int argc, char *argv[])
 	if (!bpf_is_root())
 		return 1;
 
+	err = ensure_core_btf(&open_opts);
+	if (err) {
+		warning("Failed to fetch necessary BTF for CO-RE: %s\n", strerror(-err));
+		return 1;
+	}
+
+	new_tty_write = tty_write_is_newly();
 	libbpf_set_print(libbpf_print_fn);
 
-	obj = ttysnoop_bpf__open();
+	obj = ttysnoop_bpf__open_opts(&open_opts);
 	if (!obj) {
 		warning("Failed to open BPF object\n");
 		return 1;
@@ -165,6 +242,11 @@ int main(int argc, char *argv[])
 		err = 1;
 		goto cleanup;
 	}
+
+	if (new_tty_write)
+		bpf_program__set_autoload(obj->progs.kprobe__tty_write_old, false);
+	else
+		bpf_program__set_autoload(obj->progs.kprobe__tty_write_new, false);
 
 	err = ttysnoop_bpf__load(obj);
 	if (err) {
@@ -215,6 +297,7 @@ int main(int argc, char *argv[])
 cleanup:
 	bpf_buffer__free(buf);
 	ttysnoop_bpf__destroy(obj);
+	cleanup_core_btf(&open_opts);
 
 	if (fd > 0)
 		close(fd);

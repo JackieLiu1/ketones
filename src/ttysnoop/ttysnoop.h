@@ -5,7 +5,7 @@
 #define BUFSIZE		256
 
 struct event {
-	char buf[BUFSIZE];
+	char buf[BUFSIZE+1];
 	size_t count;
 };
 
