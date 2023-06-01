@@ -91,6 +91,7 @@ APPS += tcpconnect
 APPS += tcpconnlat
 APPS += tcplife
 APPS += tcppktlat
+APPS += tcpretrans
 APPS += tcprtt
 APPS += tcpstates
 APPS += tcpsynbl
