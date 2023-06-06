@@ -227,7 +227,7 @@ $(addprefix $(BINARIES_DIR)/, numasched numamove): ALL_LDFLAGS += -lnuma
 # Build user application binary
 bin/bpflist: bpflist/bpflist.c include/commons.h | $(BINARIES_DIR)
 	$(call msg,BINARY,$(notdir $@))
-	$(Q)$(CC) $(CFLAGS) $< -I./include -lelf -lz -o $@
+	$(Q)$(CC) $(CFLAGS) $< $(INCLUDES) -lelf -lz -o $@
 
 ifeq ($(USE_BLAZESYM),1)
 $(patsubst %,$(OUTPUT)/%.o,$(BZ_APPS)): $(OUTPUT)/blazesym.h
