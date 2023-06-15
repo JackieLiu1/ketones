@@ -58,6 +58,7 @@ APPS += fsdist
 APPS += fsslower
 APPS += funccount
 APPS += funclatency
+APPS += funcslower
 APPS += gethostlatency
 APPS += hardirqs
 APPS += javagc
