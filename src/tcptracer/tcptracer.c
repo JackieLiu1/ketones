@@ -10,7 +10,6 @@
 #include <sys/resource.h>
 #include <arpa/inet.h>
 
-static struct timespec start_time;
 static volatile bool exiting = false;
 
 const char *argp_program_version = "tcptracer 0.1";
@@ -153,7 +152,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	}
 
 	if (env.print_timestamp)
-		printf("%-9.3f", time_since_start(start_time));
+		printf("%-9.3f", time_since_start());
 
 	if (env.print_uid)
 		printf("%-6d", e->uid);
@@ -236,7 +235,6 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	err = tcptracer_bpf__attach(obj);
 	if (err) {
 		warning("Failed to attach BPF programs: %s\n", strerror(-err));

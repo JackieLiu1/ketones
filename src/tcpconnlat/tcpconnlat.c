@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 
 static volatile bool exiting = false;
-static struct timespec start_time;
 
 static struct env {
 	__u64 min_us;
@@ -104,7 +103,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	} s, d;
 
 	if (env.timestamp)
-		printf("%-9.3f ", time_since_start(start_time));
+		printf("%-9.3f ", time_since_start());
 
 	if (e->af == AF_INET) {
 		s.x4.s_addr = e->saddr_v4;
@@ -195,7 +194,6 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	err = tcpconnlat_bpf__attach(obj);
 	if (err) {
 		warning("Failed to attach BPF programs: %d\n", err);

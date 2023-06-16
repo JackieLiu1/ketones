@@ -8,7 +8,6 @@
 #include "map_helpers.h"
 #include <arpa/inet.h>
 
-static struct timespec start_time;
 static volatile bool exiting = false;
 
 const char *argp_program_version = "tcpconnect 0.1";
@@ -242,7 +241,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	}
 
 	if (env.print_timestamp)
-		printf("%-9.3f ", time_since_start(start_time));
+		printf("%-9.3f ", time_since_start());
 
 	if (env.print_uid)
 		printf("%-6d ", event->uid);
@@ -359,7 +358,6 @@ int main(int argc, char *argv[])
 		bpf_program__set_autoload(obj->progs.tcp_v6_connect_ret, false);
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	err = tcpconnect_bpf__load(obj);
 	if (err) {
 		warning("failed to load BPF object: %d\n", err);

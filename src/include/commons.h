@@ -62,10 +62,18 @@ static inline int get_pid_max(void)
 	return pid_max;
 }
 
-static inline double time_since_start(struct timespec start_time)
+static inline double time_since_start(void)
 {
 	long nsec, sec;
+	static struct timespec start_time;
 	static struct timespec current_time;
+	static bool first = true;
+
+	if (first) {
+		clock_gettime(CLOCK_MONOTONIC, &start_time);
+		first = false;
+		return 0.0;
+	}
 
 	clock_gettime(CLOCK_MONOTONIC, &current_time);
 	nsec = current_time.tv_nsec - start_time.tv_nsec;

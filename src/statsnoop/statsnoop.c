@@ -6,7 +6,6 @@
 #include "trace_helpers.h"
 #include "compat.h"
 
-static struct timespec start_time;
 static volatile bool exiting = false;
 
 static pid_t target_pid = 0;
@@ -88,7 +87,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	}
 
 	if (emit_timestamp)
-		printf("%-14.9f ", time_since_start(start_time));
+		printf("%-14.9f ", time_since_start());
 	printf("%-7d %-20s %4d %8s %-s\n", e->pid, e->comm, fd, strerrno(err), e->pathname);
 
 	return 0;
@@ -169,7 +168,6 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	err = statsnoop_bpf__attach(obj);
 	if (err) {
 		warning("Failed to attach BPF programs: %d\n", err);

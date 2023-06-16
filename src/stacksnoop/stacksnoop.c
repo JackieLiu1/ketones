@@ -10,7 +10,6 @@
 #include "compat.h"
 #include "trace_helpers.h"
 
-static struct timespec start_time;
 static volatile bool exiting = false;
 
 static struct env {
@@ -114,7 +113,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 	else
 		printf("%-18s %s\n", "TIME(s)", "FUNCTION");
 
-	printf("%-18.9f ", time_since_start(start_time));
+	printf("%-18.9f ", time_since_start());
 	if (env.verbose)
 		printf("%-12.12s %-6d %-3d %s\n",
 		       e->comm, e->pid, e->cpu, env.function);
@@ -261,7 +260,6 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	int fd = bpf_map__fd(obj->maps.stack_traces);
 	err = bpf_buffer__open(buf, handle_event, handle_lost_events, &fd);
 

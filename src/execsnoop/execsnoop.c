@@ -27,8 +27,6 @@ static struct env {
 	.uid = INVALID_UID
 };
 
-static struct timespec start_time;
-
 const char *argp_program_version = "execsnoop 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
 const char argp_program_doc[] =
@@ -212,7 +210,7 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 		printf("%-8s ", ts);
 
 	if (env.timestamp)
-		printf("%-8.3f", time_since_start(start_time));
+		printf("%-8.3f", time_since_start());
 
 	if (env.print_uid)
 		printf("%-6d ", e->uid);
@@ -297,7 +295,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	err = execsnoop_bpf__attach(bpf_obj);
 	if (err) {
 		warning("Failed to attach BPF programs\n");

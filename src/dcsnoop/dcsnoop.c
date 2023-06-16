@@ -5,7 +5,6 @@
 #include "trace_helpers.h"
 #include "compat.h"
 
-static struct timespec start_time;
 static volatile bool exiting = false;
 static __u64 time_end;
 
@@ -101,7 +100,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 		strftime_now(ts, sizeof(ts), "%H:%M:%S");
 		printf("%-8s ", ts);
 	} else {
-		printf("%-11.6f ", time_since_start(start_time));
+		printf("%-11.6f ", time_since_start());
 	}
 
 	printf("%-7d %-7d %-16s %c %s\n",
@@ -198,8 +197,6 @@ int main(int argc, char *argv[])
 		bpf_program__set_autoload(obj->progs.lookup_fast_fentry, false);
 		bpf_program__set_autoload(obj->progs.d_lookup_fexit, false);
 	}
-
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
 	err = dcsnoop_bpf__load(obj);
 	if (err) {

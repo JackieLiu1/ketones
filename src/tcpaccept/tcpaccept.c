@@ -13,8 +13,6 @@
 #include "map_helpers.h"
 #include <arpa/inet.h>
 
-static struct timespec start_time;
-static float start_ts = 0.0;
 static volatile bool exiting = false;
 
 const char *argp_program_version = "tcpaccept 0.1";
@@ -130,7 +128,6 @@ static void print_header(void)
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	char time_now[16];
-	float time_ts;
 	const struct data_t *event = data;
 	char src[INET6_ADDRSTRLEN], dst[INET6_ADDRSTRLEN];
 	union {
@@ -157,12 +154,8 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 		printf("%-8s ", time_now);
 	}
 
-	if (env.timestamp) {
-		time_ts = time_since_start(start_time);
-		if (start_ts == 0)
-			start_ts = time_ts;
-		printf("%-8.3f ", time_ts - start_ts);
-	}
+	if (env.timestamp)
+		printf("%-8.3f ", time_since_start());
 
 	printf("%-7d %-12.12s %-2lld %-16s %-5d %-16s %-5d\n",
 	       event->pid,
@@ -253,8 +246,6 @@ int main(int argc, char *argv[])
 		obj->rodata->trace_pid = env.trace_pid;
 
 	obj->rodata->filter_by_port = env.port;
-
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
 
 	err = tcpaccept_bpf__load(obj);
 	if (err) {
