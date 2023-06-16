@@ -6,7 +6,7 @@
 #include "trace_helpers.h"
 #include "uprobe_helpers.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "bashreadline 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -77,7 +77,7 @@ static void handle_lost_event(void *ctx, int cpu, __u64 lost_cnt)
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 int main(int argc, char *argv[])

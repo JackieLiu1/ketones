@@ -69,7 +69,7 @@ const char *cap_name[] = {
 	[40] = "CAP_CHECKPOINT_RESTORE"
 };
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static volatile bool verbose = false;
 struct syms_cache *syms_cache = NULL;
 struct ksyms *ksyms = NULL;
@@ -175,7 +175,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static void print_map(struct ksyms *ksyms, struct syms_cache *syms_cache,

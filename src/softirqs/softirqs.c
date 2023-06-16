@@ -18,7 +18,7 @@ struct env {
 	.count = false,
 };
 
-static volatile bool exiting = 0;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "softirqs 0.1";
 const char *argp_program_buf_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -104,7 +104,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 enum {

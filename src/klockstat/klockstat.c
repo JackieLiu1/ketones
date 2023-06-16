@@ -543,11 +543,11 @@ static int print_stats(struct ksyms *ksyms, int stack_map, int stat_map)
 	return 0;
 }
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int libbpf_print_fn(enum libbpf_print_level level, const char *format,

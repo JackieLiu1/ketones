@@ -5,7 +5,7 @@
 #include "biosnoop.skel.h"
 #include "trace_helpers.h"
 
-static volatile sig_atomic_t exiting = 0;
+static volatile sig_atomic_t exiting;
 
 static struct env {
 	char *disk;

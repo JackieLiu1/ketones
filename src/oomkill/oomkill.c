@@ -6,7 +6,7 @@
 #include "btf_helpers.h"
 #include "trace_helpers.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static bool verbose = false;
 
 const char *argp_program_version = "oomkill 0.1";
@@ -73,7 +73,7 @@ static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int libbpf_print_fn(enum libbpf_print_level level, const char *format,

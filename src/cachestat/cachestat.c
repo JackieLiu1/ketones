@@ -9,7 +9,7 @@ struct argument {
 	bool	timestamp;
 };
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static volatile bool verbose = false;
 
 const char *argp_program_version = "cachestat 0.1";
@@ -83,7 +83,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int get_meminfo(__u64 *buffers, __u64 *cached)

@@ -8,7 +8,7 @@
 #define KSNOOP_VERSION	"0.1"
 #endif
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static struct btf *vmlinux_btf;
 static const char *bin_name;
 static int pages = PAGES_DEFAULT;
@@ -763,7 +763,7 @@ static void lost_handler(void *ctx, int cpu, __u64 cnt)
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int add_traces(struct bpf_map *func_map, struct trace *traces,

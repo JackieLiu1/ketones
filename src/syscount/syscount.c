@@ -335,11 +335,11 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 int main(int argc, char *argv[])

@@ -7,7 +7,7 @@
 
 #define MAX_ARGS_KEY		259
 
-static volatile sig_atomic_t exiting = 0;
+static volatile sig_atomic_t exiting;
 
 static struct env {
 	bool time;

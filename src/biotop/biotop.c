@@ -59,7 +59,7 @@ void free_vector(struct vector vector)
 
 struct vector disks = {};
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static struct env {
 	bool	clear_screen;
@@ -171,7 +171,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 struct data_t {

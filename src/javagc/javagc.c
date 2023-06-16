@@ -6,10 +6,11 @@
 
 #define BINARY_PATH_SIZE	256
 
+static volatile sig_atomic_t exiting;
+
 static struct env {
 	pid_t pid;
 	int time;
-	bool exiting;
 	bool verbose;
 } env = {
 	.pid = -1,
@@ -93,7 +94,7 @@ static void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
 
 static void sig_handler(int sig)
 {
-	env.exiting = true;
+	exiting = 1;
 }
 
 static int get_jvmso_path(char *path)
@@ -238,7 +239,7 @@ int main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	while (!env.exiting) {
+	while (!exiting) {
 		err = bpf_buffer__poll(buf, POLL_TIMEOUT_MS);
 		if (err < 0 && err != -EINTR) {
 			warning("Error polling perf buffer: %s\n", strerror(-err));

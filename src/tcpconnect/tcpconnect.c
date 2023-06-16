@@ -8,7 +8,7 @@
 #include "map_helpers.h"
 #include <arpa/inet.h>
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "tcpconnect 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -120,7 +120,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static void print_count_ipv4(int map_fd)

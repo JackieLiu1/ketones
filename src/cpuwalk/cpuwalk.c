@@ -7,7 +7,7 @@
 #include <sys/syscall.h>
 #include <linux/perf_event.h>
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static bool verbose = false;
 static int frequency = 99;
@@ -92,7 +92,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static struct hist zero;

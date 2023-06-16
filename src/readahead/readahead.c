@@ -11,7 +11,7 @@ static struct env {
 	.duration = -1
 };
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "readahead 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -59,7 +59,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static bool readahead__set_attach_target(struct bpf_program *prog)

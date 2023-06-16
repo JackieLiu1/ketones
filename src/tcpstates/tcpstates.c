@@ -7,7 +7,7 @@
 #include "tcpstates.skel.h"
 #include "trace_helpers.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static struct env {
 	bool emit_timestamp;
@@ -111,7 +111,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int handle_event(void *ctx, void *data, size_t data_sz)

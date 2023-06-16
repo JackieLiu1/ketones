@@ -6,7 +6,7 @@
 #include "trace_helpers.h"
 #include "compat.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static pid_t target_pid = 0;
 static bool trace_failed_only = false;
@@ -70,7 +70,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int handle_event(void *ctx, void *data, size_t data_sz)

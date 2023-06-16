@@ -6,7 +6,7 @@
 
 #include <libgen.h>
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static pid_t target_pid = 0;
 static int target_signal = 0;
@@ -123,7 +123,7 @@ static void alias_parse(char *prog)
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int handle_event(void *ctx, void *data, size_t data_sz)

@@ -16,7 +16,7 @@ static struct env {
 	.times = 99999999,
 };
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "biopattern 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -96,7 +96,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int print_map(struct bpf_map *counters, struct partitions *partitions)

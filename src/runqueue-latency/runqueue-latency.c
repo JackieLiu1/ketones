@@ -21,7 +21,7 @@ struct env {
 	.times = 99999999,
 };
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "runqueue-latency 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -122,7 +122,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static int print_log2_hists(struct bpf_map *hists)

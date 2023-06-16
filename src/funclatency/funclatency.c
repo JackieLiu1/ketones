@@ -276,11 +276,11 @@ out_binary:
 	return ret;
 }
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 static void sig_hander(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static struct sigaction sigact = {

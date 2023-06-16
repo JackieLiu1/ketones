@@ -97,7 +97,7 @@ struct allocation {
 #define ATTACH_UPROBE_CHECKED(skel, sym_name, prog_name) __ATTACH_UPROBE_CHECKED(skel, sym_name, prog_name, false)
 #define ATTACH_URETPROBE_CHECKED(skel, sym_name, prog_name) __ATTACH_UPROBE_CHECKED(skel, sym_name, prog_name, true)
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static volatile bool child_exited = false;
 
 static void sig_handler(int signo)
@@ -105,7 +105,7 @@ static void sig_handler(int signo)
 	if (signo == SIGCHLD)
 		child_exited = 1;
 
-	exiting = true;
+	exiting = 1;
 }
 
 const char *argp_program_version = "memleak 0.1";

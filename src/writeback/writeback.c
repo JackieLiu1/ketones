@@ -6,7 +6,7 @@
 #include "writeback.skel.h"
 #include "compat.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 static bool verbose = false;
 
 const char *argp_program_version = "writeback 0.1";
@@ -48,7 +48,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 const char *reasons[] = {

@@ -5,7 +5,7 @@
 #include "btf_helpers.h"
 #include "trace_helpers.h"
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 const char *argp_program_version = "vfsstat 0.1";
 const char *argp_program_bug_address = "Jackie Liu <liuyun01@kylinos.cn>";
@@ -100,7 +100,7 @@ static void print_and_reset_stats(__u64 stats[S_MAXSTAT])
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 int main(int argc, char *argv[])

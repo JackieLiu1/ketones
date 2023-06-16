@@ -13,7 +13,7 @@
 #include "blazesym.h"
 #endif
 
-static volatile bool exiting = false;
+static volatile sig_atomic_t exiting;
 
 #ifdef USE_BLAZESYM
 static blazesym *symbolizer;
@@ -206,7 +206,7 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format,
 
 static void sig_handler(int sig)
 {
-	exiting = true;
+	exiting = 1;
 }
 
 static void parse_open_flags(int flag, int sps_cnt)
