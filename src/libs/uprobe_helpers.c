@@ -5,6 +5,7 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -25,6 +26,7 @@ int get_pid_binary_path(pid_t pid, char *path, size_t path_sz)
 {
 	ssize_t ret;
 	char proc_pid_exe[32];
+	int i;
 
 	if (snprintf(proc_pid_exe, sizeof(proc_pid_exe), "/proc/%d/exe", pid)
 	    >= sizeof(proc_pid_exe)) {
@@ -40,7 +42,9 @@ int get_pid_binary_path(pid_t pid, char *path, size_t path_sz)
 		warn("readlink truncation");
 		return -1;
 	}
-	path[ret] = '\0';
+
+	for (i = 0; !isspace(path[i]) && i < ret; i++);
+	path[i] = '\0';
 
 	return 0;
 }
