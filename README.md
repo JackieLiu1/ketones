@@ -37,7 +37,27 @@ you with a wide range of usage options.
 **Multi-Architecture Support**: Our software supports the ARM64, X86, and
 Loongarch architectures, catering to different hardware platforms.
 
-### Installation and Integration
+### Build
+
+***Install build depends***
+
+```bash
+# apt install llvm clang make gcc libcap-dev binutils-dev
+```
+
+***Make***
+
+```bash
+# make
+```
+
+***Install***
+
+```bash
+# make install
+```
+
+### Integration
 
 Our software is designed to be user-friendly with a straightforward installation
 and integration process. To get started, simply follow these steps:
