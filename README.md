@@ -1,4 +1,4 @@
-## Ketones: A kempt eBPF tool for a new environments
+## Ketones: the Key EBPF TOol for a New EnvironmentS
 
 Welcome to our software! Below is a detailed description of the software,
 highlighting its features and capabilities.
