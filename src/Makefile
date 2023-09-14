@@ -75,6 +75,7 @@ APPS += llcstat
 APPS += loads
 APPS += mdflush
 APPS += mountsnoop
+APPS += mysqld-qslower
 APPS += naptime
 APPS += numamove
 APPS += numasched
