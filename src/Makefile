@@ -53,6 +53,7 @@ APPS += cpudist
 APPS += cpufreq
 APPS += cpuwalk
 APPS += dbslower
+APPS += dbstat
 APPS += dcsnoop
 APPS += dcstat
 APPS += drsnoop
