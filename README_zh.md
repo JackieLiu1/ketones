@@ -30,7 +30,7 @@
 ***安装编译依赖***
 
 ```bash
-# apt install llvm clang make gcc libcap-dev binutils-dev
+# apt install llvm-dev clang make gcc libcap-dev binutils-dev libnuma-dev
 ```
 
 ***编译***
